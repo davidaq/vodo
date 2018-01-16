@@ -5,17 +5,32 @@ import { connect as connectTCP } from 'net'
 const pool = {}
 const pipe = {}
 
+const domainSuffix = {}
+readAssets('domain-suffix.txt').toString().split('\n').forEach(v => {
+  if (v) {
+    domainSuffix[`.${v.trim()}`] = true
+  }
+})
+
 export const getTunnelFor = (url, requestHandler, cb) => {
   const [domain, port = '443'] = url.split(':')
   const domainParts = domain.split('.')
-  let certDomain = domain
-  if (domainParts.length > 3) {
-    certDomain =  `*.${domainParts.slice(domainParts.length - 3).join('.')}`
+  let certDomain = ''
+  for (let i = domainParts.length - 1; i >= 0; i--) {
+    certDomain = `.${domainParts[i]}${certDomain}`
+    if (!domainSuffix[certDomain]) {
+      break
+    }
+  }
+  if (certDomain !== `.${domain}`) {
+    certDomain = `*${certDomain}`
+  } else {
+    certDomain = domain
   }
   if (!pool[certDomain]) {
     pool[certDomain] = new Promise(resolve => {
       console.error(`Open SSL tunnel for ${certDomain}`)
-      IPC.request('gen-ssl-pair', domain)
+      IPC.request('gen-ssl-pair', certDomain)
       .then(options => {
         const tunnel = createServer(options, (req, res) => {
           setTimeout(() => {
