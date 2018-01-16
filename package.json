@@ -11,8 +11,13 @@
   "license": "ISC",
   "chromium-args": "--enable-logging=stderr",
   "dependencies": {
-    "vue": "^2.5.13",
-    "vue-loader": "^13.7.0"
+    "babel-plugin-transform-decorators": "^6.24.1",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "node-forge": "^0.7.1",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0"
   },
   "devDependencies": {
     "nwjs-builder-phoenix": "^1.14.6"

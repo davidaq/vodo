@@ -1,5 +1,6 @@
 .*
 !.gitignore
+!.babelrc
 node_modules/
 *.swp
 *.tmp
