@@ -1,0 +1,20 @@
+{
+  "name": "zokor-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dist": "build --tasks win-x64,mac-x64 --mirror https://npm.taobao.org/mirrors/nwjs/ .",
+    "start": "run --x64 --mirror https://npm.taobao.org/mirrors/nwjs/ ."
+  },
+  "author": "",
+  "license": "ISC",
+  "chromium-args": "--enable-logging=stderr",
+  "dependencies": {
+    "vue": "^2.5.13",
+    "vue-loader": "^13.7.0"
+  },
+  "devDependencies": {
+    "nwjs-builder-phoenix": "^1.14.6"
+  }
+}
