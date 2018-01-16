@@ -1,7 +1,8 @@
 import { createServer } from 'http'
 import { parse } from 'url'
 import { serve as serveApi } from './api'
-import { serve as serveProxy, connect } from './proxy'
+import { serve as serveProxy } from './proxy'
+import { connectSSLTunnel } from './ssl-tunnel'
 
 const handler = (req, res) => {
   let { url } = req
@@ -30,5 +31,9 @@ const onConnect = () => {
 }
 
 server.listen(process.env.PORT || Store.config.basic.port, '0.0.0.0', onConnect)
-server.on('connect', connect)
+server.on('connect', connectSSLTunnel)
 
+for (let i = 0; i < 4; i++) {
+  IPC.start({ SERVICE: 'gen-ssl' })
+  IPC.start({ SERVICE: 'proxy' })
+}
