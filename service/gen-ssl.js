@@ -1,26 +1,8 @@
 import { pki, md } from 'node-forge'
 
-let childProcess = []
-if (!process.env.SERVICE) {
-  for (let i = 0; i < 3; i++) {
-    const proc = fork({ SERVICE: 'gen-ssl' })
-    proc.on('message', msg => {
-      childProcess.push(proc)
-    })
-  }
-} else {
-  process.on('message', msg => {
-    if (msg.type === 'GEN_SSL') {
-      generateCert(msg.domain, result => {
-        process.send({
-          type: 'GEN_SSL_RESULT',
-          domain: msg.domain,
-          result
-        })
-      })
-    }
-  })
-}
+IPC.answer('gen-ssl-pair', (domain) => {
+  return generateCert(domain)
+})
 
 function getRootPair () {
   const rootCA = pki.certificateFromPem(readAssets('rootCA.crt').toString())
@@ -38,22 +20,7 @@ function createSerialNumber() {
   return ret
 }
 
-export function generateCert (domain, cb) {
-  if (childProcess.length > 0) {
-    const proc = childProcess[Math.floor(Math.random() * childProcess.length)]
-    const handler = msg => {
-      if (msg.type === 'GEN_SSL_RESULT' && msg.domain === domain) {
-        proc.removeListener('message', handler)
-        cb(msg.result)
-      }
-    }
-    proc.on('message', handler)
-    proc.send({
-      type: 'GEN_SSL',
-      domain,
-    })
-    return
-  }
+function generateCert (domain) {
   const { rootCA, rootKey } = getRootPair()
   const keys = pki.rsa.generateKeyPair(1024)
   const cert = pki.createCertificate()
@@ -139,9 +106,9 @@ export function generateCert (domain, cb) {
   cert.sign(rootKey, md.sha256.create())
   const keyString = pki.privateKeyToPem(keys.privateKey)
   const certString = pki.certificateToPem(cert)
-  cb({
+  return {
     key: keyString,
     cert: certString,
-  })
+  }
 }
 

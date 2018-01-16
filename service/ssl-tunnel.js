@@ -1,7 +1,6 @@
 import { createServer } from 'https'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
-import { generateCert } from './gen-ssl'
 
 const pool = {}
 const pipe = {}
@@ -16,7 +15,8 @@ export const getTunnelFor = (url, requestHandler, cb) => {
   if (!pool[certDomain]) {
     pool[certDomain] = new Promise(resolve => {
       console.error(`Open SSL tunnel for ${certDomain}`)
-      generateCert(domain, options => {
+      IPC.request('gen-ssl-pair', domain)
+      .then(options => {
         const tunnel = createServer(options, (req, res) => {
           setTimeout(() => {
             const { url, requestHandler } = pipe[req.socket.remotePort]
@@ -38,5 +38,9 @@ export const getTunnelFor = (url, requestHandler, cb) => {
     })
     cb(sock)
   })
+}
+
+for (let i = 0; i < 4; i++) {
+  IPC.start({ SERVICE: 'gen-ssl' })
 }
 

@@ -1,16 +1,13 @@
 require('babel-register')
-require('./global')
+require('./globals')
 
 if (typeof nw !== 'undefined' && !process.env.SERVICE) {
   require('./gui')
 } else {
-  switch (process.env.SERVICE) {
-  case 'gen-ssl':
-    require('./service/gen-ssl')
-    break
-  default:
-    require('./service')
-    break
+  let modName = './service'
+  if (process.env.SERVICE) {
+    modName += '/' + process.env.SERVICE
   }
+  require(modName)
 }
 

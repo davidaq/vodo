@@ -1,19 +1,19 @@
-import React from 'react'
 import { readFileSync, writeFile, mkdir } from 'fs'
+import { EventEmitter } from 'events'
 import { homedir } from 'os'
 import { join } from 'path'
 import { fork } from 'child_process'
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
-if (process.send) {
-  setTimeout(() => {
-    process.send({ type: 'PROCESS_STARTED' })
-  }, 50)
-}
 
-global.React = React
 
 global.readAssets = name => readFileSync(join(__dirname, 'assets', name))
+
+global.EventBus = {
+
+}
+new EventEmitter()
+global.EventBus.emit
 
 const childProcess = []
 global.fork = env => {
