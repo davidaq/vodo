@@ -20,7 +20,7 @@ const server = createServer(handler)
 
 const onConnect = () => {
   const { port } = server.address()
-  console.log(`Background service started on port ${port}`)
+  console.error(`Background service started on port ${port}`)
   if (process.sendMessage) {
     process.send({
       type: 'SERVICE_STARTED',
@@ -29,6 +29,6 @@ const onConnect = () => {
   }
 }
 
-server.listen(process.env.PORT || '8888', '0.0.0.0', onConnect)
+server.listen(process.env.PORT || Store.config.basic.port, '0.0.0.0', onConnect)
 server.on('connect', connect)
 

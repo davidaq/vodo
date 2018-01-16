@@ -1,14 +1,9 @@
 import { pki, md } from 'node-forge'
-import { fork } from 'child_process'
 
 let childProcess = []
-if (process.env.SERVICE !== 'gen-ssl') {
+if (!process.env.SERVICE) {
   for (let i = 0; i < 3; i++) {
-    const proc = fork(require.resolve('../index'), [], {
-      env: Object.assign({}, process.env, {
-        SERVICE: 'gen-ssl',
-      })
-    })
+    const proc = fork({ SERVICE: 'gen-ssl' })
     proc.on('message', msg => {
       childProcess.push(proc)
     })
@@ -28,7 +23,7 @@ if (process.env.SERVICE !== 'gen-ssl') {
 }
 
 function getRootPair () {
-  const rootCA = pki.certificateFromPem(readAssets('rootCA.pem').toString())
+  const rootCA = pki.certificateFromPem(readAssets('rootCA.crt').toString())
   const rootKey = pki.privateKeyFromPem(readAssets('rootCA.key').toString())
   return { rootCA, rootKey }
 }
