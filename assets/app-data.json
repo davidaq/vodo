@@ -2,7 +2,7 @@
   "config": {
     "basic": {
       "port": 8888,
-      "saveRequestLimit": 3000
+      "saveRequestLimit": 300
     }
   },
   "tmp": {

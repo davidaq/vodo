@@ -1,6 +1,5 @@
 import { createServer } from 'http'
 import { connect as connectTCP } from 'net'
-import { parse } from 'url'
 import { serve as serveApi } from './api'
 import { certDomain } from './ssl-tunnel'
 import { handleProxy } from './handle-proxy'
@@ -8,42 +7,47 @@ import { handleProxy } from './handle-proxy'
 const sslOriginUrl = {}
 
 const handleHTTP = (req, res) => {
-  const handle = () => {
-    let { url } = req
-    if (!/https?:\/\//i.test(url)) {
-      url = `http://api${url}`
-    }
-    req.parsedUrl = parse(url)
-    if (req.parsedUrl.hostname === 'api') {
-      serveApi(req, res)
+  if (!/https?:\/\//i.test(req.url)) {
+    if (req.socket.remoteAddress === '127.0.0.1') {
+      setTimeout(() => {
+        const originUrl = sslOriginUrl[req.socket.remotePort]
+        if (originUrl) {
+          req.url = `https://${originUrl}${req.url}`
+          if (!req.socket.sslOriginHandled) {
+            req.socket.sslOriginHandled = true
+            req.socket.on('close', () => {
+              delete sslOriginUrl[req.socket.remotePort]
+            })
+          }
+          handleProxy(req, res)
+        } else {
+          serveApi(req, res)
+        }
+      }, 10)
     } else {
-      handleProxy(req, res)
+      serveApi(req, res)
     }
+  } else {
+    handleProxy(req, res)
   }
-  if (req.socket.remoteAddress === '127.0.0.1') {
-    const originUrl = sslOriginUrl[req.socket.remotePort]
-    if (originUrl) {
-      delete sslOriginUrl[req.socket.remotePort]
-      req.url = `https://${originUrl}${req.url}`
-    }
-  }
-  handle()
 }
 
 const connectSSLTunnel = (req, sock, head) => {
+  // sock.once('data', chunk => {
+  //   console.log(chunk.toString())
+  // })
   let [domain, port = '443'] = req.url.split(':')
-  domain = certDomain(domain)
+  sock.pause()
   const doTunnel = tunnel => {
-    tunnel.on('connect', () => {
+    pipeOnConnect(sock, tunnel, () => {
       sock.write('HTTP/1.1 200 Connection Established\r\nProxy-agent: zokor\r\n\r\n')
       tunnel.write(head)
-      sock.pipe(tunnel)
-      tunnel.pipe(sock)
     })
-    sock.on('error', () => tunnel.end())
-    tunnel.on('error', () => sock.end())
   }
-  IPC.request('ssl-tunnel-port', domain)
+  doTunnel(connectTCP(port, domain))
+  return
+  domain = certDomain(domain)
+  IPC.request('get-ssl-tunnel-port', domain)
   .then(port => {
     const sock = connectTCP(port, '127.0.0.1')
     sock.on('connect', () => {
@@ -58,6 +62,9 @@ const connectSSLTunnel = (req, sock, head) => {
 
 const httpServer = createServer(handleHTTP)
 httpServer.on('connect', connectSSLTunnel)
+httpServer.on('upgrade', (req) => {
+  console.log('upgrade', req.url)
+})
 httpServer.listen(0, '127.0.0.1', () => {
   const { port } = httpServer.address()
   IPC.request('register-http-worker', port)
@@ -65,4 +72,5 @@ httpServer.listen(0, '127.0.0.1', () => {
     sslOriginUrl[port] = url
   })
 })
+
 

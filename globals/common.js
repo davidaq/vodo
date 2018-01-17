@@ -38,3 +38,22 @@ global.writeUserData = (name, content, cb) => {
   writeFile(userDir(name), content, err => cb && cb(err))
 }
 
+global.pipeOnConnect = (from, to, cb) => {
+  const stack = new Error().stack
+  from.pause()
+  to.on('connect', () => {
+    cb && cb()
+    from.pipe(to)
+    to.pipe(from)
+    from.resume()
+  })
+  from.on('error', (err) => {
+    console.error(err.message, stack)
+    to.end()
+  })
+  to.on('error', (err) => {
+    console.error(err.message, stack)
+    from.end()
+  })
+}
+

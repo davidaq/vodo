@@ -2,8 +2,6 @@ import { createServer } from 'tls'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
 
-const pipe = {}
-
 const domainSuffix = {}
 
 export function certDomain (domain) {
@@ -11,22 +9,16 @@ export function certDomain (domain) {
     domainSuffix['*'] = true
     readAssets('domain-suffix.txt').toString().split('\n').forEach(v => {
       if (v) {
-        domainSuffix[`.${v.trim()}`] = true
+        domainSuffix[`${v.trim()}`] = true
       }
     })
   }
   const domainParts = domain.split('.')
-  let certDomain = ''
-  for (let i = domainParts.length - 1; i >= 0; i--) {
-    certDomain = `.${domainParts[i]}${certDomain}`
-    if (!domainSuffix[certDomain]) {
-      break
-    }
-  }
-  if (certDomain !== `.${domain}`) {
-    certDomain = `*${certDomain}`
-  } else {
+  let certDomain = domainParts.slice(1).join('.')
+  if (domainSuffix[certDomain]) {
     certDomain = domain
+  } else {
+    certDomain = `*.${certDomain}`
   }
   return certDomain
 }
@@ -45,20 +37,18 @@ if (process.env.SERVICE === 'ssl-tunnel') {
         if (ports.length === 0) {
           sock.end()
         } else {
+          sock.once('data', chunk => {
+            //console.log(chunk.toString())
+          })
           const port = ports[robin]
           robin = (robin + 1) % ports.length
           const worker = connectTCP(port, '127.0.0.1')
-          worker.on('connect', () => {
+          pipeOnConnect(sock, worker, () => {
             IPC.request(`ssl-origin-url-t2:${port}`, {
               port: worker.localPort,
               url: sslOriginUrl[sock.remotePort]
             })
-            delete sslOriginUrl[sock.remotePort]
-            sock.pipe(worker)
-            worker.pipe(sock)
           })
-          sock.on('error', () => worker.end())
-          worker.on('error', () => sock.end())
         }
       })
       return new Promise(resolve => {

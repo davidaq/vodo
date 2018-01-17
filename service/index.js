@@ -13,15 +13,29 @@ IPC.answer('register-http-worker', (port) => {
 const sslTunnelPool = {}
 IPC.answer('get-ssl-tunnel-port', (domain) => {
   if (!sslTunnelPool[domain]) {
-    sslTunnelPool[domain] = IPC.request('gen-ssl-tunnel-port', domain)
+    sslTunnelPool[domain] = IPC.request('ssl-tunnel-port', domain)
   }
   return sslTunnelPool[domain]
 })
 
-let counter = 0
-IPC.answer('counter', () => {
-  counter++
-  return counter
+let requestID = 0
+let cycleID = 0
+let requestSize = 0
+IPC.answer('request-id', () => {
+  requestID++
+  cycleID++
+  return { requestID, cycleID }
+})
+IPC.on('caught-request-finish', (requestID, size) => {
+  const limit = Store.config.basic.saveRequestLimit * 1024 * 1024
+  if (size > limit / 10) {
+    size = limit / 10
+  }
+  requestSize += size
+  if (requestSize > limit) {
+    cycleID = 0
+    requestSize = 0
+  }
 })
 
 let robin = 0
@@ -33,13 +47,7 @@ const handleLoad = (sock) => {
   } else {
     const port = ports[robin]
     robin = (robin + 1) % ports.length
-    const worker = connectTCP(port)
-    worker.on('connect', () => {
-      sock.pipe(worker)
-      worker.pipe(sock)
-    })
-    sock.on('error', () => worker.end())
-    worker.on('error', () => sock.end())
+    pipeOnConnect(sock, connectTCP(port))
   }
 }
 
