@@ -3,5 +3,9 @@
     "basic": {
       "port": 8888
     }
+  },
+  "tmp": {
+    "httpWorkers": [],
+    "sslTunnels": {}
   }
 }

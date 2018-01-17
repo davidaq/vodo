@@ -11,17 +11,27 @@ if (process.env.FORKED) {
     constructor () {
       super()
       this.isMain = false
-      process.on('message', msg => {
+      process.on('message', (msg) => {
         switch (msg.type) {
         case 'EVENT':
           super.emit(msg.eventName, ...msg.args)
           break
         case 'REQUEST':
           if (handlers[msg.uri]) {
-            Promise.resolve(handlers[msg.uri](...msg.args))
+            const handler = handlers[msg.uri]
+            if (handler.once) {
+              delete handlers[msg.uri]
+            }
+            Promise.resolve(handler.handler(...msg.args))
             .then(result => {
               process.send({ type: 'ANSWER', hash: msg.hash, result })
             }, error => {
+              if (error instanceof Error) {
+                error = {
+                  message: error.message,
+                  stack: error.stack
+                }
+              }
               process.send({ type: 'ANSWER', hash: msg.hash, error })
             })
           } else {
@@ -56,9 +66,15 @@ if (process.env.FORKED) {
       process.send({ type: 'REQUEST', hash, uri, args })
       return ret
     }
-    answer (uri, handler) {
-      handlers[uri] = handler
-      process.send({ type: 'ANSWERER', uri })
+    answer (uri, handler, once = false) {
+      handlers[uri] = { handler, once }
+      process.send({ type: 'ANSWERER', uri, once })
+    }
+    mutex (cb) {
+      this.request('@@MUTEX-START')
+      .then(cb)
+      .catch(err => console.error(err.stack))
+      .then(() => this.request('@@MUTEX-END'))
     }
   }
   global.IPC = new IPC()
@@ -79,8 +95,12 @@ if (process.env.FORKED) {
           }
           const job = this.queue.shift()
           const handler = this.handlers[this.robin]
+          if (handler.once) {
+            this.handlers.splice(this.robin, 1)
+          }
           this.robin = (this.robin + 1) % this.handlers.length
-          handler(...job.args).then(job.resolve, job.reject)
+          Promise.resolve(handler.handler(...job.args))
+          .then(job.resolve, job.reject)
           if (this.queue.length > 0) {
             setTimeout(() => {
               this.handle()
@@ -110,7 +130,7 @@ if (process.env.FORKED) {
         }
       })
       const waiters = {}
-      proc.on('message', msg => {
+      proc.on('message', (msg) => {
         switch (msg.type) {
         case 'PROCESS_STARTED':
           ready = true
@@ -128,6 +148,12 @@ if (process.env.FORKED) {
           .then(result => {
             proc.send({ type: 'ANSWER', hash: msg.hash, result })
           }, error => {
+            if (error instanceof Error) {
+              error = {
+                message: error.message,
+                stack: error.stack
+              }
+            }
             proc.send({ type: 'ANSWER', hash: msg.hash, error })
           })
           break
@@ -175,11 +201,39 @@ if (process.env.FORKED) {
         answerers.handle()
       })
     }
-    answer (uri, handler) {
+    answer (uri, handler, once = false) {
       const answerers = getAnswerers(uri)
-      answerers.handlers.push(handler)
+      answerers.handlers.push({ handler, once })
       answerers.handle()
     }
+    mutex (cb) {
+      this.request('@@MUTEX-START')
+      .then(cb)
+      .catch(err => console.error(err.stack))
+      .then(() => this.request('@@MUTEX-END'))
+    }
   }
-  global.IPC = new IPC()
+  const ipc = global.IPC = new IPC()
+
+  const mutexQueue = []
+  ipc.answer('@@MUTEX-START', () => {
+    const waiter = { done: false }
+    const ret = new Promise(r => {
+      waiter.start = r
+    })
+    if (mutexQueue.length === 0) {
+      waiter.start()
+    }
+    mutexQueue.push(waiter)
+    return ret
+  })
+  ipc.answer('@@MUTEX-END', () => {
+    if (mutexQueue.length > 0) {
+      mutexQueue[0].done = true
+      mutexQueue.shift()
+      if (mutexQueue.length > 0) {
+        mutexQueue[0].start()
+      }
+    }
+  })
 }

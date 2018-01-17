@@ -1,8 +1,10 @@
 import { pki, md } from 'node-forge'
 
-IPC.answer('gen-ssl-pair', (domain) => {
-  return generateCert(domain)
-})
+if (process.env.SERVICE === 'gen-ssl') {
+  IPC.answer('gen-ssl', (domain) => {
+    return generateCert(domain)
+  })
+}
 
 function getRootPair () {
   const rootCA = pki.certificateFromPem(readAssets('rootCA.crt').toString())

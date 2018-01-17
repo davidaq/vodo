@@ -1,39 +1,47 @@
-import { createServer } from 'http'
-import { parse } from 'url'
-import { serve as serveApi } from './api'
-import { serve as serveProxy } from './proxy'
-import { connectSSLTunnel } from './ssl-tunnel'
-
-const handler = (req, res) => {
-  let { url } = req
-  if (!/https?:\/\//i.test(url)) {
-    url = `http://api${url}`
-  }
-  req.parsedUrl = parse(url)
-  if (req.parsedUrl.hostname === 'api') {
-    serveApi(req, res)
-  } else {
-    serveProxy(req, res)
-  }
-}
-
-const server = createServer(handler)
-
-const onConnect = () => {
-  const { port } = server.address()
-  console.error(`Background service started on port ${port}`)
-  if (process.sendMessage) {
-    process.send({
-      type: 'SERVICE_STARTED',
-      port
-    })
-  }
-}
-
-server.listen(process.env.PORT || Store.config.basic.port, '0.0.0.0', onConnect)
-server.on('connect', connectSSLTunnel)
+import { connect as connectTCP, createServer } from 'net'
 
 for (let i = 0; i < 4; i++) {
   IPC.start({ SERVICE: 'gen-ssl' })
-  IPC.start({ SERVICE: 'proxy' })
+  IPC.start({ SERVICE: 'ssl-tunnel' })
+  IPC.start({ SERVICE: 'http-handler' })
 }
+
+IPC.answer('register-http-worker', (port) => {
+  Store.tmp.httpWorkers.push(port)
+})
+
+const sslTunnelPool = {}
+IPC.answer('get-ssl-tunnel-port', (domain) => {
+  if (!sslTunnelPool[domain]) {
+    sslTunnelPool[domain] = IPC.request('gen-ssl-tunnel-port', domain)
+  }
+  return sslTunnelPool[domain]
+})
+
+let robin = 0
+
+const handleLoad = (sock) => {
+  const ports = Store.tmp.httpWorkers
+  if (ports.length === 0) {
+    sock.end()
+  } else {
+    const port = ports[robin]
+    robin = (robin + 1) % ports.length
+    const worker = connectTCP(port)
+    worker.on('connect', () => {
+      sock.pipe(worker)
+      worker.pipe(sock)
+    })
+    sock.on('error', () => worker.end())
+    worker.on('error', () => sock.end())
+  }
+}
+
+const loadBalancedServer = createServer({ allowHalfOpen: true }, handleLoad)
+
+const onStartup = () => {
+  const { port } = loadBalancedServer.address()
+  console.error(`Background service started on port ${port}`)
+}
+loadBalancedServer.listen(process.env.PORT || Store.config.basic.port, onStartup)
+

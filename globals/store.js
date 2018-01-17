@@ -14,7 +14,9 @@ IPC.on('store-sync', (hash, value) => {
     global.Store = createBoundObj(JSON.parse(value))
   }
   if (IPC.isMain) {
-    writeUserData('app-data.json', value)
+    const persist = Object.assign({}, global.Store)
+    delete persist.tmp
+    writeUserData('app-data.json', JSON.stringify(persist))
   }
 })
 
