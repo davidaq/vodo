@@ -18,6 +18,12 @@ IPC.answer('get-ssl-tunnel-port', (domain) => {
   return sslTunnelPool[domain]
 })
 
+let counter = 0
+IPC.answer('counter', () => {
+  counter++
+  return counter
+})
+
 let robin = 0
 
 const handleLoad = (sock) => {

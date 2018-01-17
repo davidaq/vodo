@@ -12,13 +12,13 @@ global.readAssets = name => {
   return readFileSync(join(__dirname, '..', 'assets', name))
 }
 
-global.userDir = join(homedir(), '.zokor')
+global.userDir = (...args) => join(homedir(), '.zokor', ...args)
 
 global.ID = shortid.generate.bind(shortid)
 
 if (!process.FORKED) {
   try {
-    mkdirSync(userDir)
+    mkdirSync(userDir())
   } catch (err) {
     if (err.code !== 'EEXIST') {
       throw err
@@ -28,13 +28,13 @@ if (!process.FORKED) {
 
 global.readUserData = name => {
   try {
-    return readFileSync(join(userDir, name))
+    return readFileSync(userDir(name))
   } catch (err) {
     return null
   }
 }
 
-global.writeUserData = (name, content) => {
-  writeFile(join(userDir, name), content, err => null)
+global.writeUserData = (name, content, cb) => {
+  writeFile(userDir(name), content, err => cb && cb(err))
 }
 

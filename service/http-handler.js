@@ -1,9 +1,9 @@
-import { request as requestHTTP, createServer } from 'http'
-import { request as requestHTTPS } from 'https'
+import { createServer } from 'http'
 import { connect as connectTCP } from 'net'
 import { parse } from 'url'
 import { serve as serveApi } from './api'
 import { certDomain } from './ssl-tunnel'
+import { handleProxy } from './handle-proxy'
 
 const sslOriginUrl = {}
 
@@ -13,7 +13,6 @@ const handleHTTP = (req, res) => {
     if (!/https?:\/\//i.test(url)) {
       url = `http://api${url}`
     }
-    console.log(url)
     req.parsedUrl = parse(url)
     if (req.parsedUrl.hostname === 'api') {
       serveApi(req, res)
@@ -29,34 +28,6 @@ const handleHTTP = (req, res) => {
     }
   }
   handle()
-}
-
-const handleProxy = (req, res) => {
-  const options = Object.assign({}, req.parsedUrl)
-  options.headers = req.headers
-  options.method = req.method
-  const request = options.protocol === 'https:'
-    ? requestHTTPS
-    : requestHTTP
-  const proxyReq = request(options, proxyRes => {
-    res.writeHead(proxyRes.statusCode, proxyRes.headers)
-    res.headWritten = true
-    proxyRes.pipe(res)
-  })
-  req.pipe(proxyReq)
-  req.on('error', () => proxyReq.end())
-  proxyReq.on('error', err => {
-    if (!res.headWritten) {
-      res.writeHead(502)
-      res.end(JSON.stringify({
-        error: 'target server failed',
-        code: 502,
-        message: err.message
-      }, false, '  '))
-    } else {
-      res.end('')
-    }
-  })
 }
 
 const connectSSLTunnel = (req, sock, head) => {
