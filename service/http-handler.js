@@ -33,31 +33,48 @@ const handleHTTP = (req, res) => {
 }
 
 const connectSSLTunnel = (req, sock, head) => {
-  // sock.once('data', chunk => {
-  //   console.log(chunk.toString())
-  // })
-  let [domain, port = '443'] = req.url.split(':')
-  sock.pause()
+  sock.write('HTTP/1.1 200 Connection Established\r\nProxy-agent: zokor\r\n\r\n')
+
+  const [domain, port = '443'] = req.url.split(':')
+  const startBuffer = [head]
+  const timeout = setTimeout(() => {
+    sock.end()
+  }, 1000)
+  sock.once('data', (peek) => {
+    clearTimeout(timeout)
+    startBuffer.push(peek)
+    peek = peek.toString()
+    if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
+      beginDirect()
+    } else {
+      beginSSL()
+    }
+  })
+
+  const beginSSL = () => {
+    IPC.request('get-ssl-tunnel-port', certDomain(domain))
+    .then(port => {
+      const sock = connectTCP(port, '127.0.0.1')
+      sock.on('connect', () => {
+        IPC.request(`ssl-origin-url-t1:${port}`, {
+          port: sock.localPort,
+          url: req.url
+        })
+      })
+      doTunnel(sock)
+    }, error => console.error(error.stack))
+  }
+
+  const beginDirect = () => {
+    doTunnel(connectTCP(port, domain))
+  }
+
   const doTunnel = tunnel => {
     pipeOnConnect(sock, tunnel, () => {
-      sock.write('HTTP/1.1 200 Connection Established\r\nProxy-agent: zokor\r\n\r\n')
-      tunnel.write(head)
+      startBuffer.forEach(chunk => tunnel.write(chunk))
     })
   }
-  doTunnel(connectTCP(port, domain))
   return
-  domain = certDomain(domain)
-  IPC.request('get-ssl-tunnel-port', domain)
-  .then(port => {
-    const sock = connectTCP(port, '127.0.0.1')
-    sock.on('connect', () => {
-      IPC.request(`ssl-origin-url-t1:${port}`, {
-        port: sock.localPort,
-        url: req.url
-      })
-    })
-    doTunnel(sock)
-  }, error => console.error(error.stack))
 }
 
 const httpServer = createServer(handleHTTP)

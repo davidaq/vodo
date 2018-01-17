@@ -1,6 +1,7 @@
 import { createServer } from 'tls'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
+import { connect as connectSSL } from 'tls'
 
 const domainSuffix = {}
 
@@ -37,17 +38,28 @@ if (process.env.SERVICE === 'ssl-tunnel') {
         if (ports.length === 0) {
           sock.end()
         } else {
-          sock.once('data', chunk => {
-            //console.log(chunk.toString())
-          })
-          const port = ports[robin]
-          robin = (robin + 1) % ports.length
-          const worker = connectTCP(port, '127.0.0.1')
-          pipeOnConnect(sock, worker, () => {
-            IPC.request(`ssl-origin-url-t2:${port}`, {
-              port: worker.localPort,
-              url: sslOriginUrl[sock.remotePort]
-            })
+          sock.once('data', peekChunk => {
+            const peek = peekChunk.toString()
+            const doTunnel = (tunnel, cb) => {
+              pipeOnConnect(sock, tunnel, () => {
+                cb && cb()
+                tunnel.write(peekChunk)
+              })
+            }
+            if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
+              const [domain, port = '443'] = sslOriginUrl[sock.remotePort].split(':')
+              doTunnel(connectSSL(port, domain))
+            } else {
+              const port = ports[robin]
+              robin = (robin + 1) % ports.length
+              const worker = connectTCP(port, '127.0.0.1')
+              doTunnel(worker, () => {
+                IPC.request(`ssl-origin-url-t2:${port}`, {
+                  port: worker.localPort,
+                  url: sslOriginUrl[sock.remotePort]
+                })
+              })
+            }
           })
         }
       })
