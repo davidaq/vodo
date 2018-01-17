@@ -1,6 +1,6 @@
 import { request as requestHTTP } from 'http'
 import { request as requestHTTPS } from 'https'
-import { createGzip, createGunzip, constants } from 'zlib'
+import { createGzip, createGunzip, constants, Z_SYNC_FLUSH } from 'zlib'
 import { PassThrough } from 'stream'
 import { createWriteStream } from 'fs'
 import { parse } from 'url'
@@ -44,6 +44,7 @@ export const handleProxy = (req, res) => {
       let encodedRes = proxyRes
       if (proxyRes.headers['content-encoding'] === 'gzip') {
         decodedRes = createGunzip()
+        decodedRes.on('error', err => console.error(err.stack) || decodedRes.end())
         proxyRes.pipe(decodedRes)
         if (!clientAllowGzip) {
           encodedRes = decodedRes
@@ -63,18 +64,26 @@ export const handleProxy = (req, res) => {
           proxyRes.headers['content-encoding'] = 'gzip'
           proxyRes.rawHeaders.push('Content-Encoding')
           proxyRes.rawHeaders.push('gzip')
-          delete proxyRes.headers['content-length']
-          encodedRes = createGzip()
+          if (proxyRes.headers['content-length']) {
+            delete proxyRes.headers['content-length']
+            encodedRes = createGzip()
+          } else {
+            encodedRes = createGzip({ flush: Z_SYNC_FLUSH || constants.Z_SYNC_FLUSH })
+          }
+          encodedRes.on('error', err => console.error(err.stack) || encodedRes.end())
           proxyRes.pipe(encodedRes)
         }
       }
       const outHeaders = restoreHeaders(proxyRes.headers, proxyRes.rawHeaders)
-      writeUserData(`res-${cycleID}.json`, JSON.stringify({
-        requestID,
-        statusCode: proxyRes.statusCode,
-        headers: outHeaders
-      }), () => {
-        IPC.emit('caught-request-respond', requestID)
+      const responseEventSent = new Promise(resolve => {
+        writeUserData(`res-${cycleID}.json`, JSON.stringify({
+          requestID,
+          statusCode: proxyRes.statusCode,
+          headers: outHeaders
+        }), () => {
+          IPC.emit('caught-request-respond', requestID)
+          resolve()
+        })
       })
       res.writeHead(proxyRes.statusCode, outHeaders)
       res.headWritten = true
@@ -97,20 +106,27 @@ export const handleProxy = (req, res) => {
       })
       resultBodyStream.on('finish', () => {
         if (maybeJSON) {
-          maybeJSON = /[\}\]]]s*$/.test(lastChunk.toString())
+          maybeJSON = !!/[\}\]]\s*$/.test(lastChunk.toString())
         }
-        IPC.emit('caught-request-finish', requestID, size, maybeJSON)
         writeUserData(`fin-${cycleID}.json`, JSON.stringify({
           requestID,
           size,
           maybeJSON
-        }))
+        }), () => {
+          responseEventSent.then(() => {
+            IPC.emit('caught-request-finish', requestID, size, maybeJSON)
+          })
+        })
       })
     })
     req.pipe(createWriteStream(userDir(`req-${cycleID}.dat`)))
     req.pipe(proxyReq)
-    req.on('error', () => proxyReq.end())
+    req.on('error', err => {
+      proxyReq.end()
+      IPC.emit('caught-request-error', requestID, err.message)
+    })
     proxyReq.on('error', err => {
+      IPC.emit('caught-request-error', requestID, err.message)
       if (!res.headWritten) {
         res.writeHead(502)
         res.end(JSON.stringify({

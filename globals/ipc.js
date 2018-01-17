@@ -122,7 +122,10 @@ if (process.env.FORKED) {
       })
       processSpawning++
       let ready = false
-      proc.on('close', () => {
+      proc.on('close', (code) => {
+        if (code) {
+          process.exit(code)
+        }
         if (ready) {
           childProcess.splice(childProcess.indexOf(proc), 1)
         } else {
