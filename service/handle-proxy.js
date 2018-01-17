@@ -97,7 +97,7 @@ export const handleProxy = (req, res) => {
       })
       resultBodyStream.on('finish', () => {
         if (maybeJSON) {
-          maybeJSON = /[\}\]]]s*$/.test(chunk.toString())
+          maybeJSON = /[\}\]]]s*$/.test(lastChunk.toString())
         }
         IPC.emit('caught-request-finish', requestID, size, maybeJSON)
         writeUserData(`fin-${cycleID}.json`, JSON.stringify({
