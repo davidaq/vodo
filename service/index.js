@@ -1,4 +1,7 @@
 import { connect as connectTCP, createServer } from 'net'
+import { ensureRootCA } from './gen-ssl'
+
+ensureRootCA()
 
 for (let i = 0; i < 4; i++) {
   IPC.start({ SERVICE: 'gen-ssl' })

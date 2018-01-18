@@ -60,20 +60,25 @@ function home (req, res) {
     </head>
     <body>
       <div>
-        <a href="zokor.cer">${L('Download Certificate')}</a>
+        <a href="zokor.cer">${L('Download SSL Certificate')}</a>
       </div>
     </body>
   </html>
   `)
 }
 
-const certContent = readAssets('rootCA.crt')
 function cert (req, res) {
-  res.writeHead(200, {
-    'Content-Type': 'application/certificate',
-    'Content-Disposition': 'attachment; filename=zokor.cer'
-  })
-  res.end(certContent)
+  if (Store.tmp.rootCA) {
+    const fname = `zokor.${new Date(Store.tmp.rootCA.time).toString()}.cer`
+    res.writeHead(200, {
+      'Content-Type': 'application/certificate',
+      'Content-Disposition': 'attachment; filename=' + fname
+    })
+    res.end(Store.tmp.rootCA.cer)
+  } else {
+    res.writeHead(404)
+    res.end('Root CA not ready')
+  }
 }
 
 function appdata (req, res) {
