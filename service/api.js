@@ -4,6 +4,7 @@ import { clearInterval } from 'timers';
 import fileType from 'file-type'
 import isSvg from 'is-svg'
 import isUtf8 from 'isutf8'
+import deepmerge from 'deepmerge'
 
 export const serve = (req, res) => {
   req.corsHeaders = {
@@ -17,6 +18,9 @@ export const serve = (req, res) => {
   }
   req.query = parse(req.url)
   switch (req.query.pathname) {
+  case '/appdata':
+    appdata(req, res)
+    break
   case '/read':
     read(req, res)
     break
@@ -33,6 +37,36 @@ export const serve = (req, res) => {
   default:
     res.writeHead(404)
     res.end(`No matching route: ${req.url}`)
+  }
+}
+
+function appdata (req, res) {
+  res.writeHead(200, req.corsHeaders)
+  if (req.method.toLowerCase() === 'put') {
+    const buffer = []
+    req.on('data', chunk => {
+      buffer.push(chunk)
+    })
+    req.on('end', () => {
+      try {
+        const body = JSON.parse(Buffer.concat(buffer))
+        const changed = deepmerge(
+          Store,
+          body,
+          {
+            arrayMerge: (a, b) => b
+          }
+        )
+        Object.assign(Store, changed)
+        res.end('true')
+      } catch (err) {
+        res.end('false')
+      }
+    })
+  } else {
+    const ret = Object.assign({}, Store)
+    delete ret.tmp
+    res.end(JSON.stringify(ret))
   }
 }
 

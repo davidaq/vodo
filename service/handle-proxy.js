@@ -36,7 +36,7 @@ export const handleProxy = (req, res) => {
       console.error(err.stack)
     }
     if (options.protocol === 'file:') {
-      serveStatic(options.path, req, res)
+      serveStatic(options, req, res)
       return
     }
 
@@ -46,23 +46,26 @@ export const handleProxy = (req, res) => {
       ? requestHTTPS
       : requestHTTP
     options.requestID = requestID
+    options.cycleID = cycleID
     const startTime = Date.now()
     options.startTime = startTime
-    writeUserData(`req-${cycleID}.json`, JSON.stringify(options))
-    IPC.emit('caught-request-begin', {
-      requestID,
-      cycleID,
-      startTime,
-      protocol: options.protocol,
-      hostname: options.hostname,
-      port: options.port,
-      method: options.method,
-      pathname: options.pathname
+    const requestEventSent = new Promise(resolve => {
+      writeUserData(`req-${cycleID}.json`, JSON.stringify(options), () => {
+        IPC.emit('caught-request-begin', {
+          requestID,
+          cycleID,
+          startTime,
+          protocol: options.protocol,
+          hostname: options.hostname,
+          port: options.port,
+          method: options.method,
+          pathname: options.pathname
+        })
+        resolve()
+      })
     })
     console.info(requestID, cycleID, options.method, options.protocol, options.hostname, options.pathname.substr(0, 50))
-    if (options.protocol === 'file:') {
-      return
-    }
+    options.timeout = 5000
     const proxyReq = request(options, proxyRes => {
       let decodedRes = proxyRes
       let encodedRes = proxyRes
@@ -108,8 +111,10 @@ export const handleProxy = (req, res) => {
           responseTime,
           responseElapse: responseTime - startTime
         }), () => {
-          IPC.emit('caught-request-respond', requestID)
-          resolve()
+          requestEventSent.then(() => {
+            IPC.emit('caught-request-respond', requestID)
+            resolve()
+          })
         })
       })
       res.writeHead(proxyRes.statusCode, outHeaders)
@@ -214,20 +219,65 @@ const handleReplace = (options) => {
   }
 }
 
-const serveStatic = (fpath, req, res) => {
+const serveStatic = (options, req, res) => {
   const headers = {
     'Access-Control-Allow-Origin': req.headers['origin'] || '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
     'Access-Control-Allow-Headers': Store.config.corsHeaders || 'Content-Type',
     'Access-Control-Allow-Credentials': 'true'
   }
-  stat(fpath, (err, info) => {
+  const startTime = Date.now()
+  const { requestID, cycleID } = options
+
+  options.protocol = 'file:'
+  options.hostname = '[local file]'
+  options.host = '[local file]'
+  options.port = 0
+  const requestEventSent = new Promise(resolve => {
+    writeUserData(`req-${cycleID}.json`, JSON.stringify(options), () => {
+      IPC.emit('caught-request-begin', {
+        requestID,
+        cycleID,
+        startTime,
+        protocol: options.protocol,
+        hostname: options.hostname,
+        port: options.port,
+        method: options.method,
+        pathname: options.pathname
+      })
+      resolve()
+    })
+  })
+  stat(options.pathname, (err, info) => {
     if (err || !info.isFile()) {
       res.writeHead(404, headers)
       res.end('File not found')
+      IPC.emit('caught-request-error', requestID, 'file not found')
     } else {
+      writeUserData(`res-${cycleID}.json`, JSON.stringify({
+        requestID,
+        statusCode: 200,
+        headers,
+        responseTime: Date.now(),
+        responseElapse: Date.now() - startTime
+      }), () => {
+        requestEventSent.then(() => {
+          IPC.emit('caught-request-respond', requestID)
+          writeUserData(`fin-${cycleID}.json`, JSON.stringify({
+            requestID,
+            size: info.size,
+            maybeJSON: true,
+            finishTime: Date.now(),
+            finishElapse: Date.now() - startTime
+          }), () => {
+            IPC.emit('caught-request-finish', requestID, {
+              size: 0, maybeJSON: true, finishElapse: Date.now() - startTime
+            })
+          })
+        })
+      })
       res.writeHead(200, headers)
-      const reader = createReadStream(fpath)
+      const reader = createReadStream(options.path)
       reader.pipe(res)
       reader.on('error', () => res.end())
     }
