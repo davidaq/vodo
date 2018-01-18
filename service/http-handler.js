@@ -10,7 +10,7 @@ const handleHTTP = (req, res) => {
   if (/\/---zokor---\//.test(req.url) || req.headers['host'] === 'zokor.me') {
     req.url = req.url.replace(/https?:\/\/.*?\/|\/---zokor---\//, '/')
     serveApi(req, res)
-  } else if (!/https?:\/\//i.test(req.url)) {
+  } else if (!/^https?:\/\//i.test(req.url)) {
     if (req.socket.remoteAddress === '127.0.0.1') {
       setTimeout(() => {
         const originUrl = sslOriginUrl[req.socket.remotePort]
@@ -82,9 +82,6 @@ const connectSSLTunnel = (req, sock, head) => {
 
 const httpServer = createServer(handleHTTP)
 httpServer.on('connect', connectSSLTunnel)
-httpServer.on('upgrade', (req) => {
-  console.log('upgrade', req.url)
-})
 httpServer.listen(0, '127.0.0.1', () => {
   const { port } = httpServer.address()
   IPC.request('register-http-worker', port)
