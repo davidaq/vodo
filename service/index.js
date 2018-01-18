@@ -26,7 +26,7 @@ IPC.answer('request-id', () => {
   cycleID++
   return { requestID, cycleID }
 })
-IPC.on('caught-request-finish', (requestID, size) => {
+IPC.on('caught-request-finish', (requestID, { size }) => {
   const limit = Store.config.basic.saveRequestLimit * 1024 * 1024
   if (size > limit / 10) {
     size = limit / 10

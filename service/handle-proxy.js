@@ -30,11 +30,22 @@ export const handleProxy = (req, res) => {
       ? requestHTTPS
       : requestHTTP
     options.requestID = requestID
+    const startTime = Date.now()
+    options.startTime = startTime
     writeUserData(`req-${cycleID}.json`, JSON.stringify(options))
+    if (options.protocol === 'https:' && !options.port) {
+      options.port = 443
+    }
+    if (options.protocol === 'http:' && !options.port) {
+      options.port = 80
+    }
     IPC.emit('caught-request-begin', {
       requestID,
       cycleID,
+      startTime,
+      protocol: options.protocol,
       hostname: options.hostname,
+      port: options.port,
       method: options.method,
       pathname: options.pathname
     })
@@ -75,11 +86,14 @@ export const handleProxy = (req, res) => {
         }
       }
       const outHeaders = restoreHeaders(proxyRes.headers, proxyRes.rawHeaders)
+      const responseTime = Date.now()
       const responseEventSent = new Promise(resolve => {
         writeUserData(`res-${cycleID}.json`, JSON.stringify({
           requestID,
           statusCode: proxyRes.statusCode,
-          headers: outHeaders
+          headers: outHeaders,
+          responseTime,
+          responseElapse: responseTime - startTime
         }), () => {
           IPC.emit('caught-request-respond', requestID)
           resolve()
@@ -105,16 +119,20 @@ export const handleProxy = (req, res) => {
         lastChunk = chunk
       })
       resultBodyStream.on('finish', () => {
+        const finishTime = Date.now()
+        const finishElapse = finishTime - startTime
         if (maybeJSON) {
           maybeJSON = !!/[\}\]]\s*$/.test(lastChunk.toString())
         }
         writeUserData(`fin-${cycleID}.json`, JSON.stringify({
           requestID,
           size,
-          maybeJSON
+          maybeJSON,
+          finishTime,
+          finishElapse
         }), () => {
           responseEventSent.then(() => {
-            IPC.emit('caught-request-finish', requestID, size, maybeJSON)
+            IPC.emit('caught-request-finish', requestID, { size, maybeJSON, finishElapse })
           })
         })
       })
