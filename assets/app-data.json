@@ -2,22 +2,23 @@
   "config": {
     "port": 8888,
     "saveRequestLimit": 300,
-    "parseHTTPS": true
+    "parseHTTPS": true,
+    "corsHeaders": "Content-Type, X-Request-With"
   },
   "replace": [
     {
       "from": {
-        "protocol": "https:",
-        "domain": "www.baidu.com",
-        "port": "443",
-        "path": "/family",
+        "protocol": "http:",
+        "domain": "davidaq.com",
+        "port": "80",
+        "path": "/mock",
         "exact": false
       },
       "to": {
-        "protocol": "http:",
-        "domain": "family.waimai.baidu.com",
-        "port": "80",
-        "path": "",
+        "protocol": "file:",
+        "domain": "",
+        "port": "",
+        "path": "/Users/anqin/Documents/workspace/zokor-app/global.js",
         "exact": false
       }
     }

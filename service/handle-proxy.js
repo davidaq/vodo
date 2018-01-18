@@ -2,7 +2,7 @@ import { request as requestHTTP } from 'http'
 import { request as requestHTTPS } from 'https'
 import { createGzip, createGunzip, constants, Z_SYNC_FLUSH } from 'zlib'
 import { PassThrough } from 'stream'
-import { createWriteStream } from 'fs'
+import { stat, createReadStream, createWriteStream } from 'fs'
 import { parse } from 'url'
 
 function restoreHeaders (headers, rawHeaders) {
@@ -31,52 +31,15 @@ export const handleProxy = (req, res) => {
       options.port = 80
     }
     try {
-      for (let i = 0; i < Store.replace.length; i++) {
-        const rule = Store.replace[i]
-        if (
-          rule.from.protocol === options.protocol &&
-          rule.from.domain === options.hostname &&
-          rule.from.port === options.port
-         ) {
-          let match = true
-          if (rule.from.path) {
-            if (rule.from.exact) {
-              match = rule.from.path === options.pathname
-            } else {
-              match = options.pathname.substr(0, rule.from.path.length) === rule.from.path
-            }
-          }
-          if (match) {
-            options.protocol = rule.to.protocol
-            options.hostname = rule.to.domain
-            options.host = rule.to.domain
-            options.port = rule.to.port
-            if (rule.to.pathname) {
-              if (rule.to.exact) {
-                options.pathname = rule.to.path
-              } else {
-                options.pathname = rule.to.path
-                if (rule.from.path && !rule.from.exact) {
-                  options.pathname += options.pathname.substr(rule.from.path.length)
-                }
-              }
-              options.path = options.pathname
-              if (options.search) {
-                options.path += options.search
-              }
-            }
-            options.href = options.protocol + '//' + options.hostname +
-              ':' + options.port + options.path
-            if (options.hash) {
-              options.href += options.hash
-            }
-            break
-          }
-        }
-      }
+      handleReplace(options)
     } catch (err) {
       console.error(err.stack)
     }
+    if (options.protocol === 'file:') {
+      serveStatic(options.path, req, res)
+      return
+    }
+
     options.headers = restoreHeaders(req.headers, req.rawHeaders)
     options.method = req.method
     const request = options.protocol === 'https:'
@@ -97,6 +60,9 @@ export const handleProxy = (req, res) => {
       pathname: options.pathname
     })
     console.info(requestID, cycleID, options.method, options.protocol, options.hostname, options.pathname.substr(0, 50))
+    if (options.protocol === 'file:') {
+      return
+    }
     const proxyReq = request(options, proxyRes => {
       let decodedRes = proxyRes
       let encodedRes = proxyRes
@@ -203,6 +169,68 @@ export const handleProxy = (req, res) => {
         res.end('')
       }
     })
+  })
+}
+
+const handleReplace = (options) => {
+  for (let i = 0; i < Store.replace.length; i++) {
+    const rule = Store.replace[i]
+    if (
+      rule.from.protocol === options.protocol &&
+      rule.from.domain === options.hostname &&
+      +rule.from.port === +options.port
+     ) {
+      let match = true
+      if (rule.from.path) {
+        if (rule.from.exact) {
+          match = rule.from.path === options.pathname
+        } else {
+          match = options.pathname.substr(0, rule.from.path.length) === rule.from.path
+        }
+      }
+      if (match) {
+        options.protocol = rule.to.protocol
+        options.hostname = rule.to.domain
+        options.host = rule.to.domain
+        options.port = rule.to.port
+        if (rule.to.path) {
+          options.pathname = rule.to.path
+          if (rule.from.path && rule.to.exact && !rule.from.exact) {
+            options.pathname += options.pathname.substr(rule.from.path.length)
+          }
+          options.path = options.pathname
+          if (options.search) {
+            options.path += options.search
+          }
+        }
+        options.href = options.protocol + '//' + options.hostname +
+          ':' + options.port + options.path
+        if (options.hash) {
+          options.href += options.hash
+        }
+        break
+      }
+    }
+  }
+}
+
+const serveStatic = (fpath, req, res) => {
+  const headers = {
+    'Access-Control-Allow-Origin': req.headers['origin'] || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
+    'Access-Control-Allow-Headers': Store.config.corsHeaders || 'Content-Type',
+    'Access-Control-Allow-Credentials': 'true'
+  }
+  stat(fpath, (err, info) => {
+    if (err || !info.isFile()) {
+      res.writeHead(404, headers)
+      res.end('File not found')
+    } else {
+      res.writeHead(200, headers)
+      const reader = createReadStream(fpath)
+      reader.pipe(res)
+      reader.on('error', () => res.end())
+    }
   })
 }
 
