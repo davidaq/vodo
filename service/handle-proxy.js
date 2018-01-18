@@ -19,164 +19,154 @@ function restoreHeaders (headers, rawHeaders) {
 }
 
 export const handleProxy = (req, res) => {
-  IPC.request('request-id')
-  .then(({ requestID, cycleID }) => {
-    const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
-    req.headers['accept-encoding'] = 'gzip'
-    const options = Object.assign({}, parse(req.url))
-    if (options.protocol === 'https:' && !options.port) {
-      options.port = 443
-    }
-    if (options.protocol === 'http:' && !options.port) {
-      options.port = 80
-    }
-    try {
-      handleReplace(options)
-    } catch (err) {
-      console.error(err.stack)
-    }
-    options.headers = restoreHeaders(req.headers, req.rawHeaders)
-    options.method = req.method
-    options.requestID = requestID
-    options.cycleID = cycleID
-    if (options.protocol === 'file:') {
-      serveStatic(options, req, res)
-      return
-    }
-    const request = options.protocol === 'https:'
-      ? requestHTTPS
-      : requestHTTP
-    const startTime = Date.now()
-    options.startTime = startTime
-    const requestEventSent = new Promise(resolve => {
-      writeUserData(`req-${cycleID}.json`, JSON.stringify(options), () => {
-        IPC.emit('caught-request-begin', {
-          requestID,
-          cycleID,
-          startTime,
-          protocol: options.protocol,
-          hostname: options.hostname,
-          port: options.port,
-          method: options.method,
-          pathname: options.pathname
-        })
-        resolve()
-      })
-    })
-    console.info(requestID, cycleID, options.method, options.protocol, options.hostname, options.pathname.substr(0, 50))
-    options.timeout = 5000
-    const proxyReq = request(options, proxyRes => {
-      let decodedRes = proxyRes
-      let encodedRes = proxyRes
-      if (proxyRes.headers['content-encoding'] === 'gzip') {
-        decodedRes = createGunzip()
-        decodedRes.on('error', err => console.error(err.stack) || decodedRes.end())
-        proxyRes.pipe(decodedRes)
-        if (!clientAllowGzip) {
-          encodedRes = decodedRes
-          proxyRes.headers['content-encoding'] = 'identity'
-        }
-      } else if (clientAllowGzip) {
-        const contentType = proxyRes.headers['content-type']
-        let wrapGzip = true
-        if (contentType) {
-          if (/image|audio|video/.test(contentType)) {
-            wrapGzip = false
-          } else if (contentType !== 'application/json' && /application/.test(contentType)) {
-            wrapGzip = false
-          }
-        }
-        if (wrapGzip) {
-          proxyRes.headers['content-encoding'] = 'gzip'
-          proxyRes.rawHeaders.push('Content-Encoding')
-          proxyRes.rawHeaders.push('gzip')
-          if (proxyRes.headers['content-length']) {
-            delete proxyRes.headers['content-length']
-            encodedRes = createGzip()
-          } else {
-            encodedRes = createGzip({ flush: Z_SYNC_FLUSH || constants.Z_SYNC_FLUSH })
-          }
-          encodedRes.on('error', err => console.error(err.stack) || encodedRes.end())
-          proxyRes.pipe(encodedRes)
+  const requestID = ID()
+  const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
+  req.headers['accept-encoding'] = 'gzip'
+  const options = Object.assign({}, parse(req.url))
+  if (options.protocol === 'https:' && !options.port) {
+    options.port = '443'
+  }
+  if (options.protocol === 'http:' && !options.port) {
+    options.port = '80'
+  }
+  try {
+    handleReplace(options)
+  } catch (err) {
+    console.error(err.stack)
+  }
+  options.port = `${options.port}`
+  options.headers = restoreHeaders(req.headers, req.rawHeaders)
+  options.method = req.method
+  options.requestID = requestID
+  if (options.protocol === 'file:') {
+    serveStatic(options, req, res)
+    return
+  }
+  const request = options.protocol === 'https:'
+    ? requestHTTPS
+    : requestHTTP
+  const startTime = Date.now()
+  options.startTime = startTime
+  IPC.request('record-request', requestID, options)
+  IPC.emit('caught-request-begin', {
+    requestID,
+    startTime,
+    protocol: options.protocol,
+    hostname: options.hostname,
+    port: options.port,
+    method: options.method,
+    pathname: options.pathname
+  })
+  console.info(requestID, options.method, options.protocol, options.hostname, options.pathname.substr(0, 50))
+  options.timeout = 5000
+  const bodyLimit = Store.config.singleRequestLimit * 1024 * 1024
+  const proxyReq = request(options, proxyRes => {
+    let decodedRes = proxyRes
+    let encodedRes = proxyRes
+    if (proxyRes.headers['content-encoding'] === 'gzip') {
+      decodedRes = createGunzip()
+      decodedRes.on('error', err => console.error(err.stack) || decodedRes.end())
+      proxyRes.pipe(decodedRes)
+      if (!clientAllowGzip) {
+        encodedRes = decodedRes
+        proxyRes.headers['content-encoding'] = 'identity'
+      }
+    } else if (clientAllowGzip) {
+      const contentType = proxyRes.headers['content-type']
+      let wrapGzip = true
+      if (contentType) {
+        if (/image|audio|video/.test(contentType)) {
+          wrapGzip = false
+        } else if (contentType !== 'application/json' && /application/.test(contentType)) {
+          wrapGzip = false
         }
       }
-      const outHeaders = restoreHeaders(proxyRes.headers, proxyRes.rawHeaders)
-      const responseTime = Date.now()
-      const responseEventSent = new Promise(resolve => {
-        writeUserData(`res-${cycleID}.json`, JSON.stringify({
-          requestID,
-          statusCode: proxyRes.statusCode,
-          headers: outHeaders,
-          responseTime,
-          responseElapse: responseTime - startTime
-        }), () => {
-          requestEventSent.then(() => {
-            IPC.emit('caught-request-respond', requestID)
-            resolve()
-          })
-        })
-      })
-      res.writeHead(proxyRes.statusCode, outHeaders)
-      res.headWritten = true
-      const resultBodyStream = createWriteStream(userDir(`res-${cycleID}.dat`))
-      proxyReq.on('error', () => resultBodyStream.end())
-      resultBodyStream.on('error', () => null)
-      encodedRes.pipe(res)
-      decodedRes.pipe(resultBodyStream)
-      let size = 0
-      let maybeJSON = false
-      let lastChunk
-      decodedRes.on('data', chunk => {
-        if (size === 0) {
-          if (/^\s*[\{\[]/.test(chunk.toString())) {
-            maybeJSON = true
-          }
+      if (wrapGzip) {
+        proxyRes.headers['content-encoding'] = 'gzip'
+        proxyRes.rawHeaders.push('Content-Encoding')
+        proxyRes.rawHeaders.push('gzip')
+        if (proxyRes.headers['content-length']) {
+          delete proxyRes.headers['content-length']
+          encodedRes = createGzip()
+        } else {
+          encodedRes = createGzip({ flush: Z_SYNC_FLUSH || constants.Z_SYNC_FLUSH })
         }
-        size += chunk.length
-        lastChunk = chunk
-      })
-      resultBodyStream.on('finish', () => {
-        const finishTime = Date.now()
-        const finishElapse = finishTime - startTime
-        if (maybeJSON) {
-          maybeJSON = !!/[\}\]]\s*$/.test(lastChunk.toString())
-        }
-        writeUserData(`fin-${cycleID}.json`, JSON.stringify({
-          requestID,
-          size,
-          maybeJSON,
-          finishTime,
-          finishElapse
-        }), () => {
-          responseEventSent.then(() => {
-            IPC.emit('caught-request-finish', requestID, { size, maybeJSON, finishElapse })
-          })
-        })
-      })
+        encodedRes.on('error', err => console.error(err.stack) || encodedRes.end())
+        proxyRes.pipe(encodedRes)
+      }
+    }
+    const responseHeaders = restoreHeaders(proxyRes.headers, proxyRes.rawHeaders)
+    const responseTime = Date.now()
+    IPC.request('record-request', requestID, {
+      statusCode: proxyRes.statusCode,
+      statusMessage: proxyRes.statusMessage,
+      responseHeaders,
+      responseTime,
+      responseElapse: responseTime - startTime
     })
-    req.pipe(createWriteStream(userDir(`req-${cycleID}.dat`)))
-    req.pipe(proxyReq)
-    req.on('error', err => {
-      proxyReq.end()
-      requestEventSent.then(() => {
-        IPC.emit('caught-request-error', requestID, err.message)
-      })
-    })
-    proxyReq.on('error', err => {
-      requestEventSent.then(() => {
-        IPC.emit('caught-request-error', requestID, err.message)
-      })
-      if (!res.headWritten) {
-        res.writeHead(502)
-        res.end(JSON.stringify({
-          error: 'target server failed',
-          code: 502,
-          message: err.message
-        }, false, '  '))
-      } else {
-        res.end('')
+    IPC.emit('caught-request-respond', requestID)
+    res.writeHead(proxyRes.statusCode, proxyRes.statusMessage, responseHeaders)
+    res.headWritten = true
+    encodedRes.pipe(res)
+    let size = 0
+    const responseBuffer = []
+    decodedRes.on('data', (chunk) => {
+      size += chunk.length
+      if (size < bodyLimit) {
+        responseBuffer.push(chunk)
       }
     })
+    decodedRes.on('end', () => {
+      const finishTime = Date.now()
+      const finishElapse = finishTime - startTime
+      const responseBody = size < bodyLimit ? Buffer.concat(responseBuffer).toString('binary') : null
+      IPC.request('record-request', requestID, {
+        responseBodySize: size,
+        responseBody,
+        finishTime,
+        finishElapse
+      })
+      IPC.emit('caught-request-finish', requestID, { size, finishElapse })
+    })
+  })
+  let requestBodySize = 0
+  const requestBuffer = []
+  req.pipe(proxyReq)
+  req.on('data', (chunk) => {
+    requestBodySize += chunk.length
+    if (requestBodySize < bodyLimit) {
+      requestBuffer.push(chunk)
+    }
+  })
+  req.on('end', () => {
+    const requestBody = requestBodySize < bodyLimit ? Buffer.concat(requestBuffer).toString('binary') : null
+    IPC.request('record-request', requestID, {
+      requestBodySize,
+      requestBody
+    })
+  })
+  req.on('error', err => {
+    proxyReq.end()
+    IPC.request('record-request', requestID, {
+      error: err.message
+    })
+    IPC.emit('caught-request-error', requestID, err.message)
+  })
+  proxyReq.on('error', err => {
+    IPC.request('record-request', requestID, {
+      error: err.message
+    })
+    IPC.emit('caught-request-error', requestID, err.message)
+    if (!res.headWritten) {
+      res.writeHead(502)
+      res.end(JSON.stringify({
+        error: 'target server failed',
+        code: 502,
+        message: err.message
+      }, false, '  '))
+    } else {
+      res.end('')
+    }
   })
 }
 
@@ -231,55 +221,41 @@ const serveStatic = (options, req, res) => {
     'Access-Control-Allow-Credentials': 'true',
     'Content-Encoding': clientAllowGzip ? 'gzip' : 'identity'
   }
-  const startTime = Date.now()
-  const { requestID, cycleID } = options
+  const { requestID } = options
   options.protocol = 'file:'
   options.hostname = '[local file]'
   options.host = '[local file]'
-  options.port = 0
-  const requestEventSent = new Promise(resolve => {
-    writeUserData(`req-${cycleID}.json`, JSON.stringify(options), () => {
-      IPC.emit('caught-request-begin', {
-        requestID,
-        cycleID,
-        startTime,
-        protocol: options.protocol,
-        hostname: options.hostname,
-        port: options.port,
-        method: options.method,
-        pathname: options.pathname
-      })
-      resolve()
-    })
+  options.port = '0'
+  const startTime = Date.now()
+  IPC.request('record-request', requestID, options)
+  IPC.emit('caught-request-begin', {
+    requestID,
+    startTime,
+    protocol: options.protocol,
+    hostname: options.hostname,
+    port: options.port,
+    method: options.method,
+    pathname: options.pathname
   })
   stat(options.pathname, (err, info) => {
     if (err || !info.isFile()) {
       res.writeHead(404, headers)
       res.end('File not found')
+      IPC.request('record-request', requestID, {
+        error: 'file not found'
+      })
       IPC.emit('caught-request-error', requestID, 'file not found')
     } else {
-      writeUserData(`res-${cycleID}.json`, JSON.stringify({
-        requestID,
+      const responseTime = Date.now()
+      IPC.request('record-request', requestID, Object.assign({
         statusCode: 200,
-        headers,
-        responseTime: Date.now(),
-        responseElapse: Date.now() - startTime
-      }), () => {
-        requestEventSent.then(() => {
-          IPC.emit('caught-request-respond', requestID)
-          writeUserData(`fin-${cycleID}.json`, JSON.stringify({
-            requestID,
-            size: info.size,
-            maybeJSON: true,
-            finishTime: Date.now(),
-            finishElapse: Date.now() - startTime
-          }), () => {
-            IPC.emit('caught-request-finish', requestID, {
-              size: 0, maybeJSON: true, finishElapse: Date.now() - startTime
-            })
-          })
-        })
-      })
+        statusMessage: 'OK',
+        responseHeaders: headers,
+        responseTime,
+        responseElapse: responseTime - startTime,
+        requestBodySize: 0,
+      }, options))
+      IPC.emit('caught-request-respond', requestID)
       res.writeHead(200, headers)
       const reader = createReadStream(options.path)
       let encodedRes = reader
@@ -289,6 +265,18 @@ const serveStatic = (options, req, res) => {
         reader.pipe(encodedRes)
       }
       encodedRes.pipe(res)
+      reader.on('end', () => {
+        const finishTime = Date.now()
+        const finishElapse = finishTime - startTime
+        IPC.request('record-request', requestID, {
+          responseBodySize: info.size,
+          finishTime,
+          finishElapse
+        })
+        IPC.emit('caught-request-finish', requestID, {
+          size: info.size, finishElapse
+        })
+      })
       reader.on('error', () => res.end())
     }
   })

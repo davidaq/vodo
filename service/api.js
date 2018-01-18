@@ -304,7 +304,6 @@ function liveHTML (req, res) {
             var data = JSON.parse(event.data)
             var requestID = data[0];
             data[1].size = (data[1].size / 1024).toFixed(2) + 'KB'
-            data[1].maybeJSON = data[1].maybeJSON ? 'yes' : 'no'
             store[requestID].data.state = 'finished';
             Object.assign(store[requestID].data, data[1])
             updateUI(store[requestID]);
