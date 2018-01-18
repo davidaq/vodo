@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Zokor</title>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <div id="APP"></div>
+    <script>
+      window.init = function init (page) {
+        const { render } = require('react-dom')
+        const { createElement } = require('react')
+        const { default: Root } = require(`../gui/pages/${page}`)
+        const rootEl = document.getElementById('APP')
+        render(createElement(Root, {}), rootEl)
+      }
+    </script>
+  </body>
+</html>

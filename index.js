@@ -1,7 +1,7 @@
 require('babel-register')
 require('./globals')
 
-if (typeof nw !== 'undefined' && !process.env.SERVICE) {
+if (typeof nw !== 'undefined' && !process.env.SERVICE && !process.env.HEADLESS) {
   require('./gui')
 } else {
   let modName = './service'

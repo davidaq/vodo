@@ -18,6 +18,12 @@ export const serve = (req, res) => {
   }
   req.query = parse(req.url)
   switch (req.query.pathname) {
+  case '/':
+    home(req, res)
+    break
+  case '/zokor.cer':
+    cert(req, res)
+    break
   case '/appdata':
     appdata(req, res)
     break
@@ -38,6 +44,36 @@ export const serve = (req, res) => {
     res.writeHead(404)
     res.end(`No matching route: ${req.url}`)
   }
+}
+
+function home (req, res) {
+  res.writeHead(200, Object.assign({
+    'content-type': 'text/html; charset=utf-8',
+  }, req.corsHeaders))
+  res.end(`
+  <!DOCTYPE>
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+      <title>Zokor</title>
+    </head>
+    <body>
+      <div>
+        <a href="zokor.cer">${L('Download Certificate')}</a>
+      </div>
+    </body>
+  </html>
+  `)
+}
+
+const certContent = readAssets('rootCA.crt')
+function cert (req, res) {
+  res.writeHead(200, {
+    'Content-Type': 'application/certificate',
+    'Content-Disposition': 'attachment; filename=zokor.cer'
+  })
+  res.end(certContent)
 }
 
 function appdata (req, res) {
