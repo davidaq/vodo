@@ -195,7 +195,7 @@ function liveHTML (req, res) {
           </tbody>
         </table>
         <script>
-          var ev = new EventSource('/live');
+          var ev = new EventSource(location.href);
           var store = {};
           var headers = [];
           var headered = {};
