@@ -53,3 +53,27 @@ IPC.answer('record-request', (requestID, data) => {
     console.error(err.stack)
   }
 })
+
+IPC.answer('get-record', (requestID) => {
+  const record = recordedRequests[requestID]
+  if (record) {
+    const ret = Object.assign({}, record)
+    delete ret.requestBody
+    delete ret.responseBody
+    return ret
+  } else {
+    throw new Error('No record')
+  }
+})
+
+IPC.answer('get-record-field', (requestID, field) => {
+  const record = recordedRequests[requestID]
+  if (record) {
+    return {
+      result: record[field],
+      examined: record[`${field}:examined`]
+    }
+  } else {
+    throw new Error('No record')
+  }
+})

@@ -1,11 +1,8 @@
 import { parse } from 'url'
 import { open, close, read as readFD, stat, exists, createReadStream } from 'fs'
-import { clearInterval } from 'timers';
-import fileType from 'file-type'
-import isSvg from 'is-svg'
-import isUtf8 from 'isutf8'
 import deepmerge from 'deepmerge'
 import { getRootPair } from './gen-ssl'
+import { examine } from './mime'
 
 export const serve = (req, res) => {
   req.corsHeaders = {
@@ -28,11 +25,8 @@ export const serve = (req, res) => {
   case '/appdata':
     appdata(req, res)
     break
-  case '/read':
-    read(req, res)
-    break
-  case '/examine':
-    examine(req, res)
+  case '/get-record':
+    getRecord(req, res)
     break
   case '/live':
     if (/text\/event-stream/.test(req.headers['accept'])) {
@@ -108,134 +102,55 @@ function appdata (req, res) {
   }
 }
 
-// read user data
-function read (req, res) {
+// read request record
+function getRecord (req, res) {
+  const query = {}
   if (req.query.search) {
-    const fname = userDir(req.query.search.substr(1).replace(/[\/\\]/g, '')) || 'x'
-    exists(fname, ok => {
-      if (ok) {
-        res.writeHead(200, req.corsHeaders)
-        const reader = createReadStream(fname)
-        reader.pipe(res)
-        reader.on('error', () => res.end())
-      } else {
-        res.writeHead(404, req.corsHeaders)
-        res.end(JSON.stringify({
-          code: 404,
-          error: 'not found',
-          message: 'file trying to read does not exist'
-        }))
-      }
+    req.query.search.substr(1).split('&').forEach(field => {
+      const [key, val] = field.split('=')
+      query[decodeURIComponent(key)] = decodeURIComponent(val)
     })
-  } else {
-    res.writeHead(400, req.corsHeaders)
-    res.end(JSON.stringify({
-      code: 400,
-      error: 'missing input',
-      message: 'must provide file to read'
-    }))
   }
-}
-
-// try to examine user data file type
-function examine (req, res) {
-  if (req.query.search) {
-    const fname = userDir(req.query.search.substr(1).replace(/[\/\\]/g, '')) || 'x'
-    stat(fname, (err, info) => {
-      if (!err || !info.isFile()) {
-        const examineAsWhole = (buffer) => {
-          let beginChar
-          for (let i = 0; i < buffer.length; i++) {
-            const b = buffer[i]
-            if (b !== 0x9 && b !== 0x10 && b !== 0x13 && b !== 0x20) {
-              beginChar = String.fromCharCode(b)
-              break
-            }
-          }
-          console.log(beginChar)
-          if (beginChar === '<') {
-            if (isSvg(buffer)) {
-              result('image/svg+xml')
-              return
-            }
-          } else if (beginChar === '[' || beginChar === '{') {
-            try {
-              console.log(buffer.toString())
-              JSON.parse(buffer)
-            } catch (err) {
-              result('application/json')
-              return
-            }
-          } else if (isUtf8(buffer)) {
-            result('text/plain')
-            return
-          }
-          result('unknown/unmatched')
-        }
-        const examineHeadChunk = () => {
-          if (info.size === 0) {
-            result('unknown/empty')
-            return
-          }
-          open(fname, 'r', (err, fd) => {
-            if (err) {
-              console.error(err.message)
-              result('unknown/error')
-            } else {
-              const buffer = Buffer.alloc(4100)
-              readFD(fd, buffer, 0, 4100, 0, (err, readLen, headBuffer) => {
-                const match = fileType(headBuffer)
-                if (match) {
-                  result(match.mime)
-                  close(fd, err => null)
-                } else if (info.size > 1024 * 1024) {
-                  result('unknown/large')
-                  close(fd, err => null)
-                } else {
-                  const remainSize = info.size - 4100
-                  if (remainSize > 0) {
-                    const extBuffer = Buffer.alloc(remainSize)
-                    readFD(fd, extBuffer, 0, remainSize, 4100, (err, readLen, remainBuffer) => {
-                      close(fd, err => null)
-                      if (err) {
-                        console.error(err.message)
-                        result('unknown/error')
-                      } else {
-                        examineAsWhole(Buffer.concat([headBuffer, remainBuffer]))
-                      }
-                    })
-                  } else {
-                    close(fd, err => null)
-                    examineAsWhole(headBuffer)
-                  }
-                }
-              })
-            }
+  if (query.requestID) {
+    const notFound = () => {
+      res.writeHead(404, req.corsHeaders)
+      res.end(JSON.stringify({
+        code: 404,
+        error: 'not found',
+        message: 'request record not found'
+      }))
+    }
+    if (query.field) {
+      IPC.request('get-record-field', query.requestID, query.field)
+      .then(({ result, examined }) => {
+        result = `${result}`
+        if (result && !examined) {
+          examined = examine(new Buffer(result, 'binary'))
+          IPC.request('record-request', query.requestID, {
+            [`${query.field}:examined`]: examined
           })
         }
-        const result = (type) => {
-          res.writeHead(200, req.corsHeaders)
-          res.end(JSON.stringify({
-            size: info.size,
-            mime: type
-          }))
+        if (query.examine) {
+          res.writeHead(200, Object.assign({ 'content-type': 'text/plain' }, req.corsHeaders))
+          res.end(examined)
+        } else {
+          res.writeHead(200, Object.assign({ 'content-type': examined || 'text/plain' }, req.corsHeaders))
+          res.end(new Buffer(result, 'binary'))
         }
-        examineHeadChunk()
-      } else {
-        res.writeHead(404, req.corsHeaders)
-        res.end(JSON.stringify({
-          code: 404,
-          error: 'not found',
-          message: 'file trying to read does not exist'
-        }))
-      }
-    })
+      }, notFound)
+    } else {
+      IPC.request('get-record', query.requestID)
+      .then(result => {
+        res.writeHead(200, req.corsHeaders)
+        res.end(JSON.stringify(result))
+      }, notFound)
+    }
   } else {
     res.writeHead(400, req.corsHeaders)
     res.end(JSON.stringify({
       code: 400,
       error: 'missing input',
-      message: 'must provide file to read'
+      message: 'must provide requestID'
     }))
   }
 }
