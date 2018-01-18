@@ -24,7 +24,6 @@
     }
   ],
   "tmp": {
-    "httpWorkers": [],
-    "sslTunnels": {}
+    "httpWorkers": []
   }
 }
