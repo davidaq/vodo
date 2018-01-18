@@ -1,7 +1,14 @@
+import deepmerge from 'deepmerge'
 
-const initStoreData = JSON.parse(readAssets('app-data.json'))
+let initStoreData = JSON.parse(readAssets('app-data.json'))
 try {
-  Object.assign(initStoreData, JSON.parse(readUserData('app-data.json')))
+  initStoreData = deepmerge(
+    initStoreData,
+    JSON.parse(readUserData('app-data.json')),
+    {
+      arrayMerge: (a, b) => b
+    }
+  )
 } catch (err) {
 }
 global.Store = createBoundObj(initStoreData || {})

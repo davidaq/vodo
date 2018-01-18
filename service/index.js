@@ -27,7 +27,7 @@ IPC.answer('request-id', () => {
   return { requestID, cycleID }
 })
 IPC.on('caught-request-finish', (requestID, { size }) => {
-  const limit = Store.config.basic.saveRequestLimit * 1024 * 1024
+  const limit = Store.config.saveRequestLimit * 1024 * 1024
   if (size > limit / 10) {
     size = limit / 10
   }
@@ -57,5 +57,5 @@ const onStartup = () => {
   const { port } = loadBalancedServer.address()
   console.error(`Background service started on port ${port}`)
 }
-loadBalancedServer.listen(process.env.PORT || Store.config.basic.port, onStartup)
+loadBalancedServer.listen(process.env.PORT || Store.config.port, onStartup)
 

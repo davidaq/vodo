@@ -47,7 +47,7 @@ const connectSSLTunnel = (req, sock, head) => {
     clearTimeout(timeout)
     startBuffer.push(peek)
     peek = peek.toString()
-    if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
+    if (!Store.config.parseHTTPS || /connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
       beginDirect()
     } else {
       beginSSL()

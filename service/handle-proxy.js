@@ -24,6 +24,59 @@ export const handleProxy = (req, res) => {
     const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
     req.headers['accept-encoding'] = 'gzip'
     const options = Object.assign({}, parse(req.url))
+    if (options.protocol === 'https:' && !options.port) {
+      options.port = 443
+    }
+    if (options.protocol === 'http:' && !options.port) {
+      options.port = 80
+    }
+    try {
+      for (let i = 0; i < Store.replace.length; i++) {
+        const rule = Store.replace[i]
+        if (
+          rule.from.protocol === options.protocol &&
+          rule.from.domain === options.hostname &&
+          rule.from.port === options.port
+         ) {
+          let match = true
+          if (rule.from.path) {
+            if (rule.from.exact) {
+              match = rule.from.path === options.pathname
+            } else {
+              match = options.pathname.substr(0, rule.from.path.length) === rule.from.path
+            }
+          }
+          if (match) {
+            options.protocol = rule.to.protocol
+            options.hostname = rule.to.domain
+            options.host = rule.to.domain
+            options.port = rule.to.port
+            if (rule.to.pathname) {
+              if (rule.to.exact) {
+                options.pathname = rule.to.path
+              } else {
+                options.pathname = rule.to.path
+                if (rule.from.path && !rule.from.exact) {
+                  options.pathname += options.pathname.substr(rule.from.path.length)
+                }
+              }
+              options.path = options.pathname
+              if (options.search) {
+                options.path += options.search
+              }
+            }
+            options.href = options.protocol + '//' + options.hostname +
+              ':' + options.port + options.path
+            if (options.hash) {
+              options.href += options.hash
+            }
+            break
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err.stack)
+    }
     options.headers = restoreHeaders(req.headers, req.rawHeaders)
     options.method = req.method
     const request = options.protocol === 'https:'
@@ -33,12 +86,6 @@ export const handleProxy = (req, res) => {
     const startTime = Date.now()
     options.startTime = startTime
     writeUserData(`req-${cycleID}.json`, JSON.stringify(options))
-    if (options.protocol === 'https:' && !options.port) {
-      options.port = 443
-    }
-    if (options.protocol === 'http:' && !options.port) {
-      options.port = 80
-    }
     IPC.emit('caught-request-begin', {
       requestID,
       cycleID,
