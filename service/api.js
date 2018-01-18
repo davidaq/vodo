@@ -28,10 +28,10 @@ export const serve = (req, res) => {
     examine(req, res)
     break
   case '/live':
-    if (/^text\/html/.test(req.headers['accept'])) {
-      liveHTML(req, res)
-    } else {
+    if (/text\/event-stream/.test(req.headers['accept'])) {
       liveSSE(req, res)
+    } else {
+      liveHTML(req, res)
     }
     break
   default:
@@ -177,7 +177,10 @@ function examine (req, res) {
         }
         const result = (type) => {
           res.writeHead(200, req.corsHeaders)
-          res.end(type)
+          res.end(JSON.stringify({
+            size: info.size,
+            mime: type
+          }))
         }
         examineHeadChunk()
       } else {

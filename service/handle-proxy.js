@@ -35,18 +35,17 @@ export const handleProxy = (req, res) => {
     } catch (err) {
       console.error(err.stack)
     }
+    options.headers = restoreHeaders(req.headers, req.rawHeaders)
+    options.method = req.method
+    options.requestID = requestID
+    options.cycleID = cycleID
     if (options.protocol === 'file:') {
       serveStatic(options, req, res)
       return
     }
-
-    options.headers = restoreHeaders(req.headers, req.rawHeaders)
-    options.method = req.method
     const request = options.protocol === 'https:'
       ? requestHTTPS
       : requestHTTP
-    options.requestID = requestID
-    options.cycleID = cycleID
     const startTime = Date.now()
     options.startTime = startTime
     const requestEventSent = new Promise(resolve => {
@@ -159,10 +158,14 @@ export const handleProxy = (req, res) => {
     req.pipe(proxyReq)
     req.on('error', err => {
       proxyReq.end()
-      IPC.emit('caught-request-error', requestID, err.message)
+      requestEventSent.then(() => {
+        IPC.emit('caught-request-error', requestID, err.message)
+      })
     })
     proxyReq.on('error', err => {
-      IPC.emit('caught-request-error', requestID, err.message)
+      requestEventSent.then(() => {
+        IPC.emit('caught-request-error', requestID, err.message)
+      })
       if (!res.headWritten) {
         res.writeHead(502)
         res.end(JSON.stringify({
@@ -228,7 +231,6 @@ const serveStatic = (options, req, res) => {
   }
   const startTime = Date.now()
   const { requestID, cycleID } = options
-
   options.protocol = 'file:'
   options.hostname = '[local file]'
   options.host = '[local file]'
