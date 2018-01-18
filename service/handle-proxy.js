@@ -223,11 +223,13 @@ const handleReplace = (options) => {
 }
 
 const serveStatic = (options, req, res) => {
+  const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
   const headers = {
     'Access-Control-Allow-Origin': req.headers['origin'] || '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
     'Access-Control-Allow-Headers': Store.config.corsHeaders || 'Content-Type',
-    'Access-Control-Allow-Credentials': 'true'
+    'Access-Control-Allow-Credentials': 'true',
+    'Content-Encoding': clientAllowGzip ? 'gzip' : 'identity'
   }
   const startTime = Date.now()
   const { requestID, cycleID } = options
@@ -280,7 +282,13 @@ const serveStatic = (options, req, res) => {
       })
       res.writeHead(200, headers)
       const reader = createReadStream(options.path)
-      reader.pipe(res)
+      let encodedRes = reader
+      if (clientAllowGzip) {
+        encodedRes = createGzip({ flush: Z_SYNC_FLUSH || constants.Z_SYNC_FLUSH })
+        encodedRes.on('error', () => res.end())
+        reader.pipe(encodedRes)
+      }
+      encodedRes.pipe(res)
       reader.on('error', () => res.end())
     }
   })
