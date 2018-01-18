@@ -117,7 +117,6 @@ function generateCert (domain) {
     cert.sign(rootKey, md.sha256.create())
     const keyString = pki.privateKeyToPem(keys.privateKey)
     const certString = pki.certificateToPem(cert)
-    console.log(domain, certString)
     return {
       key: keyString,
       cert: certString,
