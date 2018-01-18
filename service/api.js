@@ -5,6 +5,7 @@ import fileType from 'file-type'
 import isSvg from 'is-svg'
 import isUtf8 from 'isutf8'
 import deepmerge from 'deepmerge'
+import { getRootPair } from './gen-ssl'
 
 export const serve = (req, res) => {
   req.corsHeaders = {
@@ -68,17 +69,13 @@ function home (req, res) {
 }
 
 function cert (req, res) {
-  if (Store.tmp.rootCA) {
-    const fname = `zokor.${new Date(Store.tmp.rootCA.time).toString()}.cer`
-    res.writeHead(200, {
-      'Content-Type': 'application/certificate',
-      'Content-Disposition': 'attachment; filename=' + fname
-    })
-    res.end(Store.tmp.rootCA.cer)
-  } else {
-    res.writeHead(404)
-    res.end('Root CA not ready')
-  }
+  const rootPair = getRootPair()
+  const fname = `zokor.${rootPair.hash}.cer`
+  res.writeHead(200, {
+    'Content-Type': 'application/certificate',
+    'Content-Disposition': 'attachment; filename=' + fname
+  })
+  res.end(rootPair.cer)
 }
 
 function appdata (req, res) {
