@@ -26,7 +26,7 @@ export function certDomain (domain) {
 
 let robin = 0
 
-if (process.env.SERVICE === 'ssl-tunnel') {
+export function main () {
   const sslOriginUrl = {}
   IPC.answer('ssl-tunnel-port', (domain) => {
     console.error(`Open SSL tunnel for ${domain}`)

@@ -80,14 +80,16 @@ const connectSSLTunnel = (req, sock, head) => {
   return
 }
 
-const httpServer = createServer(handleHTTP)
-httpServer.on('connect', connectSSLTunnel)
-httpServer.listen(0, '127.0.0.1', () => {
-  const { port } = httpServer.address()
-  IPC.request('register-http-worker', port)
-  IPC.answer(`ssl-origin-url-t2:${port}`, ({ port, url }) => {
-    sslOriginUrl[port] = url
+export function main () {
+  const httpServer = createServer(handleHTTP)
+  httpServer.on('connect', connectSSLTunnel)
+  httpServer.listen(0, '127.0.0.1', () => {
+    const { port } = httpServer.address()
+    IPC.request('register-http-worker', port)
+    IPC.answer(`ssl-origin-url-t2:${port}`, ({ port, url }) => {
+      sslOriginUrl[port] = url
+    })
   })
-})
+}
 
 

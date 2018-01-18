@@ -9,6 +9,6 @@ if (typeof nw !== 'undefined' && !process.env.SERVICE && !process.env.HEADLESS) 
   if (process.env.SERVICE) {
     modName += '/' + process.env.SERVICE
   }
-  require(modName)
+  require(modName).main()
 }
 

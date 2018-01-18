@@ -1,7 +1,7 @@
 import { pki, md } from 'node-forge'
 import { readFileSync, writeFileSync } from 'fs'
 
-if (process.env.SERVICE === 'gen-ssl') {
+export function main () {
   IPC.answer('gen-ssl', (domain) => {
     return generateCert(domain)
   })
