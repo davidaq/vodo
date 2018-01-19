@@ -2,15 +2,36 @@ import { pki, md } from 'node-forge'
 import { readFileSync, writeFileSync } from 'fs'
 
 export function main () {
-  IPC.answer('gen-ssl', (domain) => {
+  IPC.answer('gen-ssl-cert', (domain) => {
     return generateCert(domain)
   })
+}
+
+const domainSuffix = {}
+
+export function certDomain (domain) {
+  if (!domainSuffix['*']) {
+    domainSuffix['*'] = true
+    readAssets('domain-suffix.txt').toString().split('\n').forEach(v => {
+      if (v) {
+        domainSuffix[`${v.trim()}`] = true
+      }
+    })
+  }
+  const domainParts = domain.split('.')
+  let certDomain = domainParts.slice(1).join('.')
+  if (domainSuffix[certDomain]) {
+    certDomain = domain
+  } else {
+    certDomain = `*.${certDomain}`
+  }
+  return certDomain
 }
 
 const rootCaFile = userDir('ca.json')
 
 let rootPair = null
-export function getRootPair () {
+export function getRootCertPair () {
   if (!rootPair) {
     const { cer, key, time, hash } = JSON.parse(readFileSync(rootCaFile).toString())
     const rootCA = pki.certificateFromPem(cer)
@@ -31,7 +52,7 @@ function createSerialNumber() {
 }
 
 function generateCert (domain) {
-  const { rootCA, rootKey } = getRootPair()
+  const { rootCA, rootKey } = getRootCertPair()
   const keys = pki.rsa.generateKeyPair(1024)
   const cert = pki.createCertificate()
   cert.publicKey = keys.publicKey
@@ -124,7 +145,7 @@ function generateCert (domain) {
 
 export function ensureRootCA () {
   try {
-    return getRootPair()
+    return getRootCertPair()
   } catch (err) {
     console.error('Generate new root CA')
   }

@@ -1,14 +1,18 @@
 import { connect as connectTCP, createServer } from 'net'
-import { ensureRootCA } from './gen-ssl'
+import { ensureRootCA } from './ssl-cert'
 import { main as singleTruthService } from './single-truth'
 
 export function main () {
   ensureRootCA()
   singleTruthService()
 
-  IPC.start({ SERVICE: 'gen-ssl' }, 2)
-  IPC.start({ SERVICE: 'ssl-tunnel' }, 3)
-  IPC.start({ SERVICE: 'http-handler' }, 3)
+  // IPC.start({ SERVICE: 'ssl-cert' }, 2)
+  // IPC.start({ SERVICE: 'https-handler' }, 3)
+  // IPC.start({ SERVICE: 'http-handler' }, 3)
+
+  IPC.start({ SERVICE: 'ssl-cert' }, 1)
+  IPC.start({ SERVICE: 'https-handler' }, 1)
+  IPC.start({ SERVICE: 'http-handler' }, 1)
 
   let robin = 0
 

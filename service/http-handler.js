@@ -1,7 +1,7 @@
 import { createServer } from 'http'
 import { connect as connectTCP } from 'net'
 import { serve as serveApi } from './api'
-import { certDomain } from './ssl-tunnel'
+import { certDomain } from './ssl-cert'
 import { handleProxy } from './proxy-handler'
 
 const sslOriginUrl = {}

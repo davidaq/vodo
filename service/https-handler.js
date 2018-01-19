@@ -1,6 +1,7 @@
 import { connect as connectSSL, createServer } from 'tls'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
+import { handleProxy } from './proxy-handler'
 
 let robin = 0
 
@@ -8,7 +9,7 @@ export function main () {
   const sslOriginUrl = {}
   IPC.answer('ssl-tunnel-port', (domain) => {
     console.error(`Open SSL tunnel for ${domain}`)
-    return IPC.request('gen-ssl', domain)
+    return IPC.request('gen-ssl-cert', domain)
     .then(options => {
       options.allowHalfOpen = true
       const tunnel = createServer(options, sock => {
@@ -52,25 +53,4 @@ export function main () {
       })
     })
   })
-}
-
-const domainSuffix = {}
-
-export function certDomain (domain) {
-  if (!domainSuffix['*']) {
-    domainSuffix['*'] = true
-    readAssets('domain-suffix.txt').toString().split('\n').forEach(v => {
-      if (v) {
-        domainSuffix[`${v.trim()}`] = true
-      }
-    })
-  }
-  const domainParts = domain.split('.')
-  let certDomain = domainParts.slice(1).join('.')
-  if (domainSuffix[certDomain]) {
-    certDomain = domain
-  } else {
-    certDomain = `*.${certDomain}`
-  }
-  return certDomain
 }

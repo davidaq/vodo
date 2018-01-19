@@ -1,7 +1,7 @@
 import { parse } from 'url'
 import { open, close, read as readFD, stat, exists, createReadStream } from 'fs'
 import deepmerge from 'deepmerge'
-import { getRootPair } from './gen-ssl'
+import { getRootCertPair } from './ssl-cert'
 import { examine } from './mime'
 
 export const serve = (req, res) => {
