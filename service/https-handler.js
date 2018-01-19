@@ -1,4 +1,5 @@
-import { connect as connectSSL, createServer } from 'tls'
+import { connect as connectSSL, createServer as createServerSSL } from 'tls'
+import { Server as HttpServer } from 'http'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
 import { handleProxy } from './proxy-handler'
@@ -10,47 +11,44 @@ export function main () {
   IPC.answer('ssl-tunnel-port', (domain) => {
     console.error(`Open SSL tunnel for ${domain}`)
     return IPC.request('gen-ssl-cert', domain)
-    .then(options => {
-      options.allowHalfOpen = true
-      const tunnel = createServer(options, sock => {
-        const ports = Store.tmp.httpWorkers
-        if (ports.length === 0) {
-          sock.end()
-        } else {
-          sock.once('data', peekChunk => {
-            const peek = peekChunk.toString() 
-            const doTunnel = (tunnel, cb) => {
-              pipeOnConnect(sock, tunnel, () => {
-                cb && cb()
-                tunnel.write(peekChunk)
-              })
-            }
-            if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
-              const [domain, port = '443'] = sslOriginUrl[sock.remotePort].split(':')
-              doTunnel(connectSSL(port, domain))
-            } else {
-              const port = ports[robin]
-              robin = (robin + 1) % ports.length
-              const worker = connectTCP(port, '127.0.0.1')
-              doTunnel(worker, () => {
-                IPC.request(`ssl-origin-url-t2:${port}`, {
-                  port: worker.localPort,
-                  url: sslOriginUrl[sock.remotePort]
-                })
-              })
-            }
-          })
-        }
-      })
+    .then(tlsOptions => {
+      const tunnel = createTunnel(tlsOptions, sslOriginUrl)
       return new Promise(resolve => {
         tunnel.listen(0, '127.0.0.1', () => {
           const port = tunnel.address().port
-          IPC.answer(`ssl-origin-url-t1:${port}`, ({ port, url}) => {
+          IPC.answer(`ssl-origin-url:${port}`, ({ port, url}) => {
             sslOriginUrl[port] = url
           })
           resolve(port)
         })
       })
     })
+  })
+}
+
+const createTunnel = (tlsOptions, sslOriginUrl) => {
+  const mockHTTP = new HttpServer((req, res) => {
+    req.url = `https://${sslOriginUrl[req.socket.remotePort]}${req.url}`
+    handleProxy(req, res)
+  })
+  return createServerSSL(tlsOptions, sock => {
+    const ports = Store.tmp.httpWorkers
+    if (ports.length === 0) {
+      sock.end()
+    } else {
+      sock.once('data', peekChunk => {
+        const peek = peekChunk.toString() 
+        if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
+          const [domain, port = '443'] = sslOriginUrl[sock.remotePort].split(':')
+          pipeOnConnect(sock, connectSSL(port, domain), () => {
+            tunnel.write(peekChunk)
+          })
+        } else {
+          mockHTTP.emit('connection', sock)
+          sock.unshift(peekChunk)
+          sock.resume()
+        }
+      })
+    }
   })
 }

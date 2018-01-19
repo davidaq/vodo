@@ -4,8 +4,6 @@ import { serve as serveApi } from './api'
 import { certDomain } from './ssl-cert'
 import { handleProxy } from './proxy-handler'
 
-const sslOriginUrl = {}
-
 const handleHTTP = (req, res) => {
   if (/\/---zokor---\//.test(req.url)) {
     const pos = req.url.indexOf('/---zokor---/')
@@ -15,25 +13,7 @@ const handleHTTP = (req, res) => {
     req.url = req.url.replace(/https?:\/\/.*?\//g, '/')
     serveApi(req, res)
   } else if (!/^https?:\/\//i.test(req.url)) {
-    if (req.socket.remoteAddress === '127.0.0.1') {
-      setTimeout(() => {
-        const originUrl = sslOriginUrl[req.socket.remotePort]
-        if (originUrl) {
-          req.url = `https://${originUrl}${req.url}`
-          if (!req.socket.sslOriginHandled) {
-            req.socket.sslOriginHandled = true
-            req.socket.on('close', () => {
-              delete sslOriginUrl[req.socket.remotePort]
-            })
-          }
-          handleProxy(req, res)
-        } else {
-          serveApi(req, res)
-        }
-      }, 10)
-    } else {
-      serveApi(req, res)
-    }
+    serveApi(req, res)
   } else {
     handleProxy(req, res)
   }
@@ -62,7 +42,7 @@ const connectSSLTunnel = (req, sock, head) => {
     .then(port => {
       const sock = connectTCP(port, '127.0.0.1')
       sock.on('connect', () => {
-        IPC.request(`ssl-origin-url-t1:${port}`, {
+        IPC.request(`ssl-origin-url:${port}`, {
           port: sock.localPort,
           url: req.url
         })
@@ -89,9 +69,6 @@ export function main () {
   httpServer.listen(0, '127.0.0.1', () => {
     const { port } = httpServer.address()
     IPC.request('register-http-worker', port)
-    IPC.answer(`ssl-origin-url-t2:${port}`, ({ port, url }) => {
-      sslOriginUrl[port] = url
-    })
   })
 }
 

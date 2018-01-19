@@ -19,6 +19,9 @@ export function certDomain (domain) {
     })
   }
   const domainParts = domain.split('.')
+  if (domainParts.length <= 2) {
+    return domain
+  }
   let certDomain = domainParts.slice(1).join('.')
   if (domainSuffix[certDomain]) {
     certDomain = domain
