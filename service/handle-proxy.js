@@ -5,16 +5,52 @@ import { PassThrough } from 'stream'
 import { stat, createReadStream, createWriteStream } from 'fs'
 import { parse } from 'url'
 
-function restoreHeaders (headers, rawHeaders) {
+const forbidenInjectHeaderkeys = {
+  'accept-encoding': true,
+  'content-encoding': true,
+  'transfer-encoding': true,
+  'content-length': true
+}
+
+function resolveHeaders (headers, rawHeaders, injectHeaders) {
   const outHeaders = {}
-  rawHeaders.forEach((key, i) => {
-    if (i % 2 === 0) {
-      const lKey = key.toLowerCase()
-      if (headers.hasOwnProperty(lKey)) {
-        outHeaders[key] = headers[lKey]
+  const renameHeaders = {}
+  if (rawHeaders) {
+    rawHeaders.forEach((key, i) => {
+      if (i % 2 === 0) {
+        const loKey = key.toLowerCase()
+        if (loKey !== key) {
+          renameHeaders[loKey] = key
+        }
       }
+    })
+  }
+  rawHeaders
+    ? rawHeaders.filter((v, i) => i % 2 === 0).map(v => [v.toLowerCase(), v])
+    : []
+  Object.keys(headers).forEach(key => {
+    outHeaders[key.toLowerCase()] = headers[key]
+  })
+  if (Store.config.useInjectHeaders && injectHeaders) {
+    console.log(injectHeaders)
+    Object.keys(injectHeaders).forEach(key => {
+      const loKey = key.toLowerCase()
+      if (loKey !== key) {
+        renameHeaders[loKey] = key
+      }
+      if (!forbidenInjectHeaderkeys[loKey]) {
+        outHeaders[loKey] = injectHeaders[key]
+      }
+    })
+  }
+  Object.keys(renameHeaders).forEach((loKey) => {
+    const key = renameHeaders[loKey]
+    if (outHeaders.hasOwnProperty(loKey)) {
+      outHeaders[key] = outHeaders[loKey]
+      delete outHeaders[loKey]
     }
   })
+  console.log(outHeaders)
   return outHeaders
 }
 
@@ -35,7 +71,7 @@ export const handleProxy = (req, res) => {
     console.error(err.stack)
   }
   options.port = `${options.port}`
-  options.headers = restoreHeaders(req.headers, req.rawHeaders)
+  options.headers = resolveHeaders(req.headers, req.rawHeaders, Store.injectRequestHeaders)
   options.method = req.method
   options.requestID = requestID
   if (options.protocol === 'file:') {
@@ -83,8 +119,6 @@ export const handleProxy = (req, res) => {
       }
       if (wrapGzip) {
         proxyRes.headers['content-encoding'] = 'gzip'
-        proxyRes.rawHeaders.push('Content-Encoding')
-        proxyRes.rawHeaders.push('gzip')
         if (proxyRes.headers['content-length']) {
           delete proxyRes.headers['content-length']
           encodedRes = createGzip()
@@ -95,7 +129,7 @@ export const handleProxy = (req, res) => {
         proxyRes.pipe(encodedRes)
       }
     }
-    const responseHeaders = restoreHeaders(proxyRes.headers, proxyRes.rawHeaders)
+    const responseHeaders = resolveHeaders(proxyRes.headers, proxyRes.rawHeaders, Store.injectResponseHeaders)
     const responseTime = Date.now()
     IPC.request('record-request', requestID, {
       statusCode: proxyRes.statusCode,
@@ -171,8 +205,11 @@ export const handleProxy = (req, res) => {
 }
 
 const handleReplace = (options) => {
-  for (let i = 0; i < Store.replace.length; i++) {
-    const rule = Store.replace[i]
+  if (!Store.config.useReplaceRules) {
+    return
+  }
+  for (let i = 0; i < Store.replaceRules.length; i++) {
+    const rule = Store.replaceRules[i]
     if (
       rule.from.protocol === options.protocol &&
       rule.from.domain === options.hostname &&
@@ -214,12 +251,17 @@ const handleReplace = (options) => {
 
 const serveStatic = (options, req, res) => {
   const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
-  const headers = {
+  const headers = resolveHeaders({
     'Access-Control-Allow-Origin': req.headers['origin'] || '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
-    'Access-Control-Allow-Headers': Store.config.corsHeaders || 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Credentials': 'true',
     'Content-Encoding': clientAllowGzip ? 'gzip' : 'identity'
+  }, null, Store.injectResponseHeaders)
+  if (req.method.toLowerCase() === 'options') {
+    res.writeHead(200, headers)
+    res.end()
+    return
   }
   const { requestID } = options
   options.protocol = 'file:'

@@ -1,12 +1,18 @@
 {
   "config": {
     "port": 8888,
-    "allRequestLimit": 5,
-    "singleRequestLimit": 2,
+    "allRequestLimit": 200,
+    "singleRequestLimit": 1,
     "parseHTTPS": true,
-    "corsHeaders": "Content-Type, X-Request-With"
+    "useInjectHeaders": true,
+    "useReplaceRules": true
   },
-  "replace": [
+  "injectRequestHeaders": {
+  },
+  "injectResponseHeaders": {
+    "Access-Control-Allow-Headers": "HEHE, Content-Type, X-HEHE"
+  },
+  "replaceRules": [
     {
       "from": {
         "protocol": "http:",

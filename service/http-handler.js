@@ -7,7 +7,7 @@ import { handleProxy } from './handle-proxy'
 const sslOriginUrl = {}
 
 const handleHTTP = (req, res) => {
-  if (/\/---zokor---\//.test(req.url) || req.headers['host'] === 'zokor.me') {
+  if (/\/---zokor---\//.test(req.url) || req.headers['host'] === 'tt.tt') {
     req.url = req.url.replace(/https?:\/\/.*?\/|\/---zokor---\//, '/')
     serveApi(req, res)
   } else if (!/^https?:\/\//i.test(req.url)) {
