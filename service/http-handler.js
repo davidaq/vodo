@@ -4,7 +4,7 @@ import { serve as serveApi } from './api'
 import { certDomain } from './ssl-cert'
 import { handleProxy } from './proxy-handler'
 
-const handleHTTP = (req, res) => {
+export const handleHTTP = (req, res) => {
   if (/\/---zokor---\//.test(req.url)) {
     const pos = req.url.indexOf('/---zokor---/')
     req.url = req.url.substr(pos + '/---zokor---'.length)
@@ -24,18 +24,12 @@ const connectSSLTunnel = (req, sock, head) => {
 
   const [domain, port = '443'] = req.url.split(':')
   const startBuffer = [head]
-  const timeout = setTimeout(() => {
-    beginDirect()
-  }, 100)
-  sock.once('data', (peek) => {
-    clearTimeout(timeout)
-    startBuffer.push(peek)
-    if (peek[0] === 22) {
-      beginSSL()
-    } else {
-      beginDirect()
-    }
-  })
+
+  const doTunnel = tunnel => {
+    pipeOnConnect(sock, tunnel, () => {
+      startBuffer.forEach(chunk => tunnel.write(chunk))
+    })
+  }
 
   const beginSSL = () => {
     IPC.request('get-ssl-tunnel-port', certDomain(domain))
@@ -55,12 +49,22 @@ const connectSSLTunnel = (req, sock, head) => {
     doTunnel(connectTCP(port, domain))
   }
 
-  const doTunnel = tunnel => {
-    pipeOnConnect(sock, tunnel, () => {
-      startBuffer.forEach(chunk => tunnel.write(chunk))
+  if (Store.config.parseHTTPS) {
+    const timeout = setTimeout(() => {
+      beginDirect()
+    }, 200)
+    sock.once('data', (peek) => {
+      clearTimeout(timeout)
+      startBuffer.push(peek)
+      if (peek[0] === 22) {
+        beginSSL()
+      } else {
+        beginDirect()
+      }
     })
+  } else {
+    beginDirect()
   }
-  return
 }
 
 export function main () {

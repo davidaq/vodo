@@ -25,8 +25,8 @@ export const serve = (req, res) => {
   case '/zokor.cer':
     cert(req, res)
     break
-  case '/appdata':
-    appdata(req, res)
+  case '/app-data':
+    appData(req, res)
     break
   case '/get-record':
     getRecord(req, res)
@@ -82,7 +82,7 @@ function cert (req, res) {
   res.end(rootPair.cer)
 }
 
-function appdata (req, res) {
+function appData (req, res) {
   res.writeHead(200, req.corsHeaders)
   if (req.method.toLowerCase() === 'put') {
     const buffer = []

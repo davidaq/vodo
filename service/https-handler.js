@@ -2,7 +2,7 @@ import { connect as connectSSL, createServer as createServerSSL } from 'tls'
 import { Server as HttpServer } from 'http'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
-import { handleProxy } from './proxy-handler'
+import { handleHTTP } from './http-handler'
 
 let robin = 0
 
@@ -29,7 +29,7 @@ export function main () {
 const createTunnel = (tlsOptions, sslOriginUrl) => {
   const mockHTTP = new HttpServer((req, res) => {
     req.url = `https://${sslOriginUrl[req.socket.remotePort]}${req.url}`
-    handleProxy(req, res)
+    handleHTTP(req, res)
   })
   return createServerSSL(tlsOptions, sock => {
     const ports = Store.tmp.httpWorkers

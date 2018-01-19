@@ -6,13 +6,9 @@ export function main () {
   ensureRootCA()
   singleTruthService()
 
-  // IPC.start({ SERVICE: 'ssl-cert' }, 2)
-  // IPC.start({ SERVICE: 'https-handler' }, 3)
-  // IPC.start({ SERVICE: 'http-handler' }, 3)
-
-  IPC.start({ SERVICE: 'ssl-cert' }, 1)
-  IPC.start({ SERVICE: 'https-handler' }, 1)
-  IPC.start({ SERVICE: 'http-handler' }, 1)
+  IPC.start({ SERVICE: 'ssl-cert' }, 2)
+  IPC.start({ SERVICE: 'https-handler' }, 3)
+  IPC.start({ SERVICE: 'http-handler' }, 3)
 
   let robin = 0
 
