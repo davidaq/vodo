@@ -1,8 +1,5 @@
-import React from 'react'
 import 'colors'
 import CSS from './js-css'
-
-global.React = React
 
 global.CSS = CSS
 

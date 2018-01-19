@@ -1,32 +1,12 @@
-import { createServer } from 'tls'
+import { connect as connectSSL, createServer } from 'tls'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
-import { connect as connectSSL } from 'tls'
-
-const domainSuffix = {}
-
-export function certDomain (domain) {
-  if (!domainSuffix['*']) {
-    domainSuffix['*'] = true
-    readAssets('domain-suffix.txt').toString().split('\n').forEach(v => {
-      if (v) {
-        domainSuffix[`${v.trim()}`] = true
-      }
-    })
-  }
-  const domainParts = domain.split('.')
-  let certDomain = domainParts.slice(1).join('.')
-  if (domainSuffix[certDomain]) {
-    certDomain = domain
-  } else {
-    certDomain = `*.${certDomain}`
-  }
-  return certDomain
-}
+import { main as genSSLService } from './gen-ssl'
 
 let robin = 0
 
 export function main () {
+  genSSLService()
   const sslOriginUrl = {}
   IPC.answer('ssl-tunnel-port', (domain) => {
     console.error(`Open SSL tunnel for ${domain}`)
@@ -39,7 +19,7 @@ export function main () {
           sock.end()
         } else {
           sock.once('data', peekChunk => {
-            const peek = peekChunk.toString()
+            const peek = peekChunk.toString() 
             const doTunnel = (tunnel, cb) => {
               pipeOnConnect(sock, tunnel, () => {
                 cb && cb()
@@ -76,3 +56,23 @@ export function main () {
   })
 }
 
+const domainSuffix = {}
+
+export function certDomain (domain) {
+  if (!domainSuffix['*']) {
+    domainSuffix['*'] = true
+    readAssets('domain-suffix.txt').toString().split('\n').forEach(v => {
+      if (v) {
+        domainSuffix[`${v.trim()}`] = true
+      }
+    })
+  }
+  const domainParts = domain.split('.')
+  let certDomain = domainParts.slice(1).join('.')
+  if (domainSuffix[certDomain]) {
+    certDomain = domain
+  } else {
+    certDomain = `*.${certDomain}`
+  }
+  return certDomain
+}

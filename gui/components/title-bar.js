@@ -1,3 +1,5 @@
+import { Component } from React
+
 @CSS({
   '@keyframes xxx': {
     '0%': {
@@ -21,6 +23,14 @@
           animation: 'xxx 0.5s',
         }
       }
+    }
+  },
+  ':global html': {
+    height: '100%'
+  },
+  ':global': {
+    body: {
+      height: '100%'
     }
   }
 })

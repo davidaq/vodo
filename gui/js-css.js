@@ -1,3 +1,4 @@
+import { Component } from 'react'
 
 let idCounter = 0
 
@@ -29,22 +30,10 @@ const CSS = (style) => {
           const keyframes = {
             id,
             path: parent.path.concat([keyInParent]),
-            frames: []
+            frames: walkStyle(obj)
           }
           parent.keyframes[name] = id
           scope.push(keyframes)
-          Object.keys(obj).forEach(frameKey => {
-            const frameProps = obj[frameKey]
-            const frame = {
-              id: frameKey,
-              props: [],
-            }
-            keyframes.frames.push(frame)
-            walkStyle(frameProps, null, null, frame.props)
-            // Object.keys(frameProps).forEach(key => {
-            //   const val = frameProps[key]
-            // })
-          })
         } else {
           const entry = {
             path: parent ? parent.path.concat([keyInParent]) : [],
@@ -60,8 +49,8 @@ const CSS = (style) => {
         }
       } else {
         if (parent) {
-          let val = toCssVal(obj)
           const key = toCssKey(keyInParent)
+          let val = toCssVal(obj)
           if (key === 'animation' || key === 'animation-name') {
             const animationName = val.split(/\s+/)[0]
             if (animationName) {
@@ -77,6 +66,7 @@ const CSS = (style) => {
             }
           }
           parent.props.push({
+            isProp: true,
             key,
             value: val
           })
@@ -86,8 +76,7 @@ const CSS = (style) => {
     return scope
   }
   const entries = walkStyle(style)
-  const cssBlock = (block) => {
-    console.log(block.path, block.props)
+  const cssBlock = (block, scoped) => {
     if (block.path.length === 0 || block.props.length === 0) {
       return ''
     } else {
@@ -108,26 +97,32 @@ const CSS = (style) => {
           }
         }
       })
-      let ret = `${path} {${block.props.map(v => `${v.key}:${v.value};`).join('')}}`
+      if (/^\:global\s+/.test(path)) {
+        path = path.replace(/^\:global\s+/, '')
+      } else if (scoped) {
+        path += `[data-c-${CSSModID}]`
+      }
+      let ret = `${path} {${block.props.map(v => `${v.key}:${v.value};`).join('')}}\n`
       wrap.forEach(w => {
-        ret = `${w} {\n${ret}\n}`
+        ret = `${w} {\n${ret}}\n`
       })
       return ret
     }
   }
-  const cssContent = entries =>  entries.map((entry) => {
+  const cssContent = (entries, scoped = true) =>  entries.map((entry) => {
     if (entry.frames) {
-      const frames = entry.frames.map(frame => {
-        return `${frame.id} {\n${cssContent(frame.props)}\n}`
-      }).join('\n')
-      return `@keyframes ${entry.id} {\n${frames}\n}`
+      const frames = cssContent(entry.frames, false)
+      return `@keyframes ${entry.id} {\n${frames}}\n`
+    } else if (entry.isProp) {
+      return `${entry.key}:${entry.value};`
     } else {
-      return cssBlock(entry)
+      return cssBlock(entry, scoped)
     }
-  }).join('\n')
-  console.log(cssContent(entries))
-  return (Component) => {
-    const oRender = Component.prototype.render
+  }).join('')
+  // console.log(cssContent(entries))
+  
+  let styleInjected = false
+  return (target) => {
     const markElements = element => {
       if (element) {
         if (Array.isArray(element)) {
@@ -144,11 +139,19 @@ const CSS = (style) => {
       }
       return element
     }
-    Component.prototype.render = function (...args) {
+    let oRender
+    const nRender = function (...args) {
       const element = oRender.call(this, ...args)
       return markElements(element)
     }
-    return Component
+    if (target instanceof Component) {
+      oRender = target.prototype.render
+      target.prototype.render = nRender
+      return target
+    } else {
+      oRender = target
+      return nRender
+    }
   }
 }
 

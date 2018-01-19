@@ -1,10 +1,10 @@
 import { connect as connectTCP, createServer } from 'net'
 import { ensureRootCA } from './gen-ssl'
-import { main as singleTruth } from './single-truth'
+import { main as singleTruthService } from './single-truth'
 
 export function main () {
   ensureRootCA()
-  singleTruth()
+  singleTruthService()
 
   for (let i = 0; i < 4; i++) {
     IPC.start({ SERVICE: 'gen-ssl' })
