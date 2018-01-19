@@ -4,7 +4,6 @@ let idCounter = 0
 const CSS = (style) => {
   idCounter++
   const CSSModID = idCounter
-  const entries = []
   const toCssKey = (key) => {
     return key.replace(/[A-Z]+/, (m) => `-${m.toLowerCase()}`)
   }
@@ -20,7 +19,7 @@ const CSS = (style) => {
       return ''
     }
   }
-  const walkStyle = (obj, parent, keyInParent, notEntry = false) => {
+  const walkStyle = (obj, parent, keyInParent, scope = []) => {
     if (obj) {
       if (typeof obj === 'object') {
         if (keyInParent && /^\@keyframes/.test(keyInParent)) {
@@ -33,20 +32,18 @@ const CSS = (style) => {
             frames: []
           }
           parent.keyframes[name] = id
-          entries.push(keyframes)
+          scope.push(keyframes)
           Object.keys(obj).forEach(frameKey => {
             const frameProps = obj[frameKey]
             const frame = {
-              path: [frameKey],
-              keyframes: {},
+              id: frameKey,
               props: [],
-              parent
             }
             keyframes.frames.push(frame)
-            Object.keys(frameProps).forEach(key => {
-              const val = frameProps[key]
-              walkStyle(val, frame, key, true)
-            })
+            walkStyle(frameProps, null, null, frame.props)
+            // Object.keys(frameProps).forEach(key => {
+            //   const val = frameProps[key]
+            // })
           })
         } else {
           const entry = {
@@ -55,17 +52,10 @@ const CSS = (style) => {
             props: [],
             parent
           }
-          if (notEntry) {
-            parent.props.push({
-              key: toCssVal(keyInParent),
-              value: entry
-            })
-          } else {
-            entries.push(entry)
-          }
+          scope.push(entry)
           Object.keys(obj).forEach(key => {
             const val = obj[key]
-            walkStyle(val, entry, key, notEntry)
+            walkStyle(val, entry, key, scope)
           })
         }
       } else {
@@ -93,8 +83,9 @@ const CSS = (style) => {
         }
       }
     }
+    return scope
   }
-  walkStyle(style)
+  const entries = walkStyle(style)
   const cssBlock = (block) => {
     console.log(block.path, block.props)
     if (block.path.length === 0 || block.props.length === 0) {
@@ -124,15 +115,17 @@ const CSS = (style) => {
       return ret
     }
   }
-  const cssContent = entries.map((entry) => {
+  const cssContent = entries =>  entries.map((entry) => {
     if (entry.frames) {
-      console.log(entry.frames)
-      return `@keyframes ${entry.id} {\n${entry.frames.map(cssBlock).join('\n')}\n}`
+      const frames = entry.frames.map(frame => {
+        return `${frame.id} {\n${cssContent(frame.props)}\n}`
+      }).join('\n')
+      return `@keyframes ${entry.id} {\n${frames}\n}`
     } else {
       return cssBlock(entry)
     }
   }).join('\n')
-  console.log(cssContent)
+  console.log(cssContent(entries))
   return (Component) => {
     const oRender = Component.prototype.render
     const markElements = element => {
