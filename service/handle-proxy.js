@@ -70,7 +70,7 @@ export const handleProxy = (req, res) => {
   } catch (err) {
     console.error(err.stack)
   }
-  let maybeHTML = Store.config.useHtmlInjectScript && !!/^text\/html/.test(req.headers['accept'])
+  let maybeHTML = !!/^text\/html/.test(req.headers['accept'])
   if (maybeHTML) {
     req.headers['cache-control'] = 'no-cache'
     req.headers['pragma'] = 'no-cache'
@@ -79,6 +79,9 @@ export const handleProxy = (req, res) => {
         delete req.headers[key]
       }
     })
+  }
+  if (!Store.config.useHtmlInjectScript) {
+    maybeHTML = false
   }
   options.port = `${options.port}`
   options.headers = resolveHeaders(req.headers, req.rawHeaders, Store.injectRequestHeaders)
@@ -179,6 +182,8 @@ export const handleProxy = (req, res) => {
               )
             }
             chunk = new Buffer(headContent)
+          } else {
+            console.log('bad', headContent)
           }
         }
         res.write(chunk)

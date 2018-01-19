@@ -7,8 +7,12 @@ import { handleProxy } from './handle-proxy'
 const sslOriginUrl = {}
 
 const handleHTTP = (req, res) => {
-  if (/\/---zokor---\//.test(req.url) || req.headers['host'] === 'tt.tt') {
-    req.url = req.url.replace(/https?:\/\/.*?\/|\/---zokor---\//, '/')
+  if (/\/---zokor---\//.test(req.url)) {
+    const pos = req.url.indexOf('/---zokor---/')
+    req.url = req.url.substr(pos + '/---zokor---'.length)
+    serveApi(req, res)
+  } else if (req.headers['host'] === 'tt.tt') {
+    req.url = req.url.replace(/https?:\/\/.*?\//g, '/')
     serveApi(req, res)
   } else if (!/^https?:\/\//i.test(req.url)) {
     if (req.socket.remoteAddress === '127.0.0.1') {
