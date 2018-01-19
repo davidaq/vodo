@@ -19,6 +19,9 @@ export const serve = (req, res) => {
   case '/':
     home(req, res)
     break
+  case '/inject.js':
+    injectScript(req, res)
+    break
   case '/zokor.cer':
     cert(req, res)
     break
@@ -60,6 +63,13 @@ function home (req, res) {
     </body>
   </html>
   `)
+}
+
+function injectScript (req, res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/javascript; charset=utf-8',
+  })
+  res.end(Store.htmlInjectScript)
 }
 
 function cert (req, res) {

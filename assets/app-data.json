@@ -5,8 +5,10 @@
     "singleRequestLimit": 1,
     "parseHTTPS": true,
     "useInjectHeaders": true,
-    "useReplaceRules": true
+    "useReplaceRules": true,
+    "useHtmlInjectScript": true
   },
+  "htmlInjectScript": "console.log('HELLO')",
   "injectRequestHeaders": {
   },
   "injectResponseHeaders": {

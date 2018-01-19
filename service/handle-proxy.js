@@ -4,8 +4,10 @@ import { createGzip, createGunzip, constants, Z_SYNC_FLUSH } from 'zlib'
 import { PassThrough } from 'stream'
 import { stat, createReadStream, createWriteStream } from 'fs'
 import { parse } from 'url'
+import isUtf8 from 'isutf8'
 
 const forbidenInjectHeaderkeys = {
+  'accept': true,
   'accept-encoding': true,
   'content-encoding': true,
   'transfer-encoding': true,
@@ -32,7 +34,6 @@ function resolveHeaders (headers, rawHeaders, injectHeaders) {
     outHeaders[key.toLowerCase()] = headers[key]
   })
   if (Store.config.useInjectHeaders && injectHeaders) {
-    console.log(injectHeaders)
     Object.keys(injectHeaders).forEach(key => {
       const loKey = key.toLowerCase()
       if (loKey !== key) {
@@ -50,7 +51,6 @@ function resolveHeaders (headers, rawHeaders, injectHeaders) {
       delete outHeaders[loKey]
     }
   })
-  console.log(outHeaders)
   return outHeaders
 }
 
@@ -69,6 +69,16 @@ export const handleProxy = (req, res) => {
     handleReplace(options)
   } catch (err) {
     console.error(err.stack)
+  }
+  let maybeHTML = Store.config.useHtmlInjectScript && !!/^text\/html/.test(req.headers['accept'])
+  if (maybeHTML) {
+    req.headers['cache-control'] = 'no-cache'
+    req.headers['pragma'] = 'no-cache'
+    Object.keys(req.headers).forEach((key) => {
+      if (key.substr(0, 3) === 'if-') {
+        delete req.headers[key]
+      }
+    })
   }
   options.port = `${options.port}`
   options.headers = resolveHeaders(req.headers, req.rawHeaders, Store.injectRequestHeaders)
@@ -107,7 +117,7 @@ export const handleProxy = (req, res) => {
         encodedRes = decodedRes
         proxyRes.headers['content-encoding'] = 'identity'
       }
-    } else if (clientAllowGzip) {
+    } else if (!maybeHTML && clientAllowGzip) {
       const contentType = proxyRes.headers['content-type']
       let wrapGzip = true
       if (contentType) {
@@ -129,6 +139,12 @@ export const handleProxy = (req, res) => {
         proxyRes.pipe(encodedRes)
       }
     }
+    if (maybeHTML) {
+      proxyRes.headers['content-encoding'] = 'identity'
+      proxyRes.headers['cache-control'] = 'no-cache'
+      delete proxyRes.headers['expires']
+      delete proxyRes.headers['content-length']
+    }
     const responseHeaders = resolveHeaders(proxyRes.headers, proxyRes.rawHeaders, Store.injectResponseHeaders)
     const responseTime = Date.now()
     IPC.request('record-request', requestID, {
@@ -141,16 +157,41 @@ export const handleProxy = (req, res) => {
     IPC.emit('caught-request-respond', requestID)
     res.writeHead(proxyRes.statusCode, proxyRes.statusMessage, responseHeaders)
     res.headWritten = true
-    encodedRes.pipe(res)
+    if (!maybeHTML) {
+      encodedRes.pipe(res)
+    }
     let size = 0
     const responseBuffer = []
     decodedRes.on('data', (chunk) => {
+      if (maybeHTML) {
+        if (size === 0 && isUtf8(chunk)) {
+          let headContent = chunk.toString()
+          if (/\<html.*?\>/i.test(headContent)) {
+            if (/\<head.*?\>/i.test(headContent)) {
+              headContent = headContent.replace(
+                /(\<head.*?\>)/i,
+                `$1<script src="/---zokor---/inject.js?${Date.now()}"></script>`
+              )
+            } else {
+              headContent = headContent.replace(
+                /(\<html.*?\>)/i,
+                `$1<script src="/---zokor---/inject.js?${Date.now()}"></script>`
+              )
+            }
+            chunk = new Buffer(headContent)
+          }
+        }
+        res.write(chunk)
+      }
       size += chunk.length
       if (size < bodyLimit) {
         responseBuffer.push(chunk)
       }
     })
     decodedRes.on('end', () => {
+      if (maybeHTML) {
+        res.end()
+      }
       const finishTime = Date.now()
       const finishElapse = finishTime - startTime
       const responseBody = size < bodyLimit ? Buffer.concat(responseBuffer).toString('binary') : null
