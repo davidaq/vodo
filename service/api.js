@@ -106,9 +106,7 @@ function appData (req, res) {
       }
     })
   } else {
-    const ret = Object.assign({}, Store)
-    delete ret.tmp
-    res.end(JSON.stringify(ret))
+    res.end(JSON.stringify(Store))
   }
 }
 

@@ -30,8 +30,5 @@
         "exact": false
       }
     }
-  ],
-  "tmp": {
-    "httpWorkers": []
-  }
+  ]
 }

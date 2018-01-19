@@ -49,6 +49,8 @@ const connectSSLTunnel = (req, sock, head) => {
     doTunnel(connectTCP(port, domain))
   }
 
+  // redirect traffic to https handler only if
+  // the config switch is on and the connect is SSL
   if (Store.config.parseHTTPS) {
     const timeout = setTimeout(() => {
       beginDirect()
@@ -56,7 +58,7 @@ const connectSSLTunnel = (req, sock, head) => {
     sock.once('data', (peek) => {
       clearTimeout(timeout)
       startBuffer.push(peek)
-      if (peek[0] === 22) {
+      if (peek[0] === 0x16) {   // 0x16: handshake starter for SSL
         beginSSL()
       } else {
         beginDirect()

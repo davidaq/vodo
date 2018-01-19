@@ -1,9 +1,6 @@
 import { request } from "https";
 
 export function main () {
-  IPC.answer('register-http-worker', (port) => {
-    Store.tmp.httpWorkers.push(port)
-  })
   
   const sslTunnelPool = {}
   IPC.answer('get-ssl-tunnel-port', (domain) => {

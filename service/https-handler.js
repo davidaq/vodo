@@ -4,18 +4,17 @@ import { parse } from 'url'
 import { connect as connectTCP } from 'net'
 import { handleHTTP } from './http-handler'
 
-let robin = 0
+const sslOriginUrl = {}
 
 export function main () {
-  const sslOriginUrl = {}
   IPC.answer('ssl-tunnel-port', (domain) => {
-    console.error(`Open SSL tunnel for ${domain}`)
+    console.error(`Open SSL handler for ${domain}`)
     return IPC.request('gen-ssl-cert', domain)
     .then(tlsOptions => {
-      const tunnel = createTunnel(tlsOptions, sslOriginUrl)
+      const handler = createHandler(tlsOptions)
       return new Promise(resolve => {
-        tunnel.listen(0, '127.0.0.1', () => {
-          const port = tunnel.address().port
+        handler.listen(0, '127.0.0.1', () => {
+          const port = handler.address().port
           IPC.answer(`ssl-origin-url:${port}`, ({ port, url}) => {
             sslOriginUrl[port] = url
           })
@@ -26,29 +25,27 @@ export function main () {
   })
 }
 
-const createTunnel = (tlsOptions, sslOriginUrl) => {
+const createHandler = (tlsOptions) => {
   const mockHTTP = new HttpServer((req, res) => {
     req.url = `https://${sslOriginUrl[req.socket.remotePort]}${req.url}`
     handleHTTP(req, res)
   })
   return createServerSSL(tlsOptions, sock => {
-    const ports = Store.tmp.httpWorkers
-    if (ports.length === 0) {
-      sock.end()
-    } else {
-      sock.once('data', peekChunk => {
-        const peek = peekChunk.toString() 
-        if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
-          const [domain, port = '443'] = sslOriginUrl[sock.remotePort].split(':')
-          pipeOnConnect(sock, connectSSL(port, domain), () => {
-            tunnel.write(peekChunk)
-          })
-        } else {
-          mockHTTP.emit('connection', sock)
-          sock.unshift(peekChunk)
-          sock.resume()
-        }
-      })
-    }
+    // peek to check if request is websocket
+    sock.once('data', peekChunk => {
+      const peek = peekChunk.toString() 
+      if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
+        // for now just proxy the trafic directly to the target server
+        const [domain, port = '443'] = sslOriginUrl[sock.remotePort].split(':')
+        const tunnel = connectSSL(port, domain)
+        pipeOnConnect(sock, tunnel, () => {
+          tunnel.write(peekChunk)
+        })
+      } else {
+        mockHTTP.emit('connection', sock)
+        sock.unshift(peekChunk)
+        sock.resume()
+      }
+    })
   })
 }

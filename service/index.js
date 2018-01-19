@@ -6,19 +6,19 @@ export function main () {
   ensureRootCA()
   singleTruthService()
 
-  IPC.start({ SERVICE: 'ssl-cert' }, 2)
-  IPC.start({ SERVICE: 'https-handler' }, 3)
-  IPC.start({ SERVICE: 'http-handler' }, 3)
-
   let robin = 0
+  const httpWorkers = []
+
+  IPC.answer('register-http-worker', (port) => {
+    httpWorkers.push(port)
+  })
 
   const handleLoad = (sock) => {
-    const ports = Store.tmp.httpWorkers
-    if (ports.length === 0) {
+    if (httpWorkers.length === 0) {
       sock.end()
     } else {
-      const port = ports[robin]
-      robin = (robin + 1) % ports.length
+      const port = httpWorkers[robin]
+      robin = (robin + 1) % httpWorkers.length
       pipeOnConnect(sock, connectTCP(port))
     }
   }
@@ -30,4 +30,8 @@ export function main () {
     console.error(`Background service started on port ${port}`)
   }
   loadBalancedServer.listen(process.env.PORT || Store.config.port, onStartup)
+
+  IPC.start({ SERVICE: 'ssl-cert' }, 2)
+  IPC.start({ SERVICE: 'https-handler' }, 3)
+  IPC.start({ SERVICE: 'http-handler' }, 3)
 }
