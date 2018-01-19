@@ -11,7 +11,7 @@
   "license": "ISC",
   "chromium-args": "--enable-logging=stderr",
   "dependencies": {
-    "babel-plugin-transform-decorators": "^6.24.1",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
     "babel-plugin-transform-react-jsx": "^6.24.1",
     "babel-register": "^6.26.0",

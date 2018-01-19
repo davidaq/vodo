@@ -1,12 +1,9 @@
 import { readFileSync, writeFile, mkdirSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
-import React from 'react'
 import shortid from 'shortid'
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
-
-global.React = React
 
 global.readAssets = name => {
   return readFileSync(join(__dirname, '..', 'assets', name))

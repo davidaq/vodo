@@ -1,3 +1,11 @@
+import React from 'react'
+import 'colors'
+import CSS from './js-css'
+
+global.React = React
+
+global.CSS = CSS
+
 global.openUI = (page, options, callback) => {
   nw.Window.open('../assets/ui.html', options, (win, ...args) => {
     win.window.document.addEventListener('DOMContentLoaded', () => {
@@ -13,8 +21,5 @@ global.openUI = (page, options, callback) => {
   })
 }
 
-openUI('main', {
-  frame: false,
-  // toolbar: false
-})
+openUI('main', { frame: false })
 
