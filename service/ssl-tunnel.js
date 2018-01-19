@@ -1,12 +1,10 @@
 import { connect as connectSSL, createServer } from 'tls'
 import { parse } from 'url'
 import { connect as connectTCP } from 'net'
-import { main as genSSLService } from './gen-ssl'
 
 let robin = 0
 
 export function main () {
-  genSSLService()
   const sslOriginUrl = {}
   IPC.answer('ssl-tunnel-port', (domain) => {
     console.error(`Open SSL tunnel for ${domain}`)

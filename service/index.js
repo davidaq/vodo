@@ -6,11 +6,9 @@ export function main () {
   ensureRootCA()
   singleTruthService()
 
-  for (let i = 0; i < 4; i++) {
-    IPC.start({ SERVICE: 'gen-ssl' })
-    IPC.start({ SERVICE: 'ssl-tunnel' })
-    IPC.start({ SERVICE: 'http-handler' })
-  }
+  IPC.start({ SERVICE: 'gen-ssl' }, 2)
+  IPC.start({ SERVICE: 'ssl-tunnel' }, 3)
+  IPC.start({ SERVICE: 'http-handler' }, 3)
 
   let robin = 0
 

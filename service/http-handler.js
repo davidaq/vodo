@@ -2,7 +2,7 @@ import { createServer } from 'http'
 import { connect as connectTCP } from 'net'
 import { serve as serveApi } from './api'
 import { certDomain } from './ssl-tunnel'
-import { handleProxy } from './handle-proxy'
+import { handleProxy } from './proxy-handler'
 
 const sslOriginUrl = {}
 
@@ -45,16 +45,15 @@ const connectSSLTunnel = (req, sock, head) => {
   const [domain, port = '443'] = req.url.split(':')
   const startBuffer = [head]
   const timeout = setTimeout(() => {
-    sock.end()
-  }, 1000)
+    beginDirect()
+  }, 100)
   sock.once('data', (peek) => {
     clearTimeout(timeout)
     startBuffer.push(peek)
-    peek = peek.toString()
-    if (!Store.config.parseHTTPS || /connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
-      beginDirect()
-    } else {
+    if (peek[0] === 22) {
       beginSSL()
+    } else {
+      beginDirect()
     }
   })
 

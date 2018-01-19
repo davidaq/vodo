@@ -147,6 +147,7 @@ export const handleProxy = (req, res) => {
       proxyRes.headers['cache-control'] = 'no-cache'
       delete proxyRes.headers['expires']
       delete proxyRes.headers['content-length']
+      delete proxyRes.headers['content-security-policy']
     }
     const responseHeaders = resolveHeaders(proxyRes.headers, proxyRes.rawHeaders, Store.injectResponseHeaders)
     const responseTime = Date.now()
@@ -182,8 +183,6 @@ export const handleProxy = (req, res) => {
               )
             }
             chunk = new Buffer(headContent)
-          } else {
-            console.log('bad', headContent)
           }
         }
         res.write(chunk)

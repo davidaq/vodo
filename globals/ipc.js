@@ -52,8 +52,8 @@ if (process.env.FORKED) {
         }
       })
     }
-    start (env) {
-      process.send({ type: 'FORK', env })
+    start (env, num = 1) {
+      process.send({ type: 'FORK', env, num })
     }
     emit (eventName, ...args) {
       process.send({ type: 'EVENT', eventName, args })
@@ -116,7 +116,13 @@ if (process.env.FORKED) {
       super()
       this.isMain = true
     }
-    start (env) {
+    start (env, num = 1) {
+      if (num > 1) {
+        for (let i = 0; i < num; i++) {
+          this.start(env)
+        }
+        return
+      }
       const proc = fork(require.resolve('../index'), [], {
         env: Object.assign({ HEADLESS: '1', FORKED: '1' }, process.env, env || {})
       })
@@ -141,7 +147,7 @@ if (process.env.FORKED) {
           childProcess.push(proc)
           break
         case 'FORK':
-          this.start(msg.env)
+          this.start(msg.env, msg.num)
           break
         case 'EVENT':
           this.emit(msg.eventName, ...msg.args)
