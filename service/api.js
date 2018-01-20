@@ -73,7 +73,7 @@ function injectScript (req, res) {
 }
 
 function cert (req, res) {
-  const rootPair = getRootPair()
+  const rootPair = getRootCertPair()
   const fname = `vodo.${rootPair.hash}.cer`
   res.writeHead(200, {
     'Content-Type': 'application/certificate',

@@ -9,7 +9,7 @@ export const handleHTTP = (req, res) => {
     const pos = req.url.indexOf('/---vodo---/')
     req.url = req.url.substr(pos + '/---vodo---'.length)
     serveApi(req, res)
-  } else if (req.headers['host'] === 'tt.tt') {
+  } else if (req.headers['host'] === 'vo.do') {
     req.url = req.url.replace(/https?:\/\/.*?\//g, '/')
     serveApi(req, res)
   } else if (!/^https?:\/\//i.test(req.url)) {

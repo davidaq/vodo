@@ -10,6 +10,7 @@ try {
     }
   )
 } catch (err) {
+  writeUserData('app-data.json', JSON.stringify(initStoreData))
 }
 global.Store = createBoundObj(initStoreData || {})
 
