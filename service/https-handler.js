@@ -48,7 +48,8 @@ const createHandler = (tlsOptions) => {
             mockHTTP.emit('connection', sock)
           } catch (err) {
             console.error(err.stack)
-            sock.close()
+            sock.on('error', () => null)
+            sock.end()
           }
           sock.unshift(peekChunk)
           sock.resume()

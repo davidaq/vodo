@@ -12,10 +12,12 @@
       }
       a {
         display: inline-block;
-        background: blueviolet;
-        color: white;
+        background: #8A2BE2;
+        color: #FFF;
         padding: 0.2rem 0.5rem;
         text-decoration: none;
+        transition: opacity 0.5s ease-in;
+        -webkit-transition: opacity 0.5s ease-in;
       }
       #main {
         padding-bottom: 2rem;
@@ -36,22 +38,30 @@
         color: #777;
         animation: fadein 0.5s ease-in;
         animation-fill-mode: backwards;
+        -webkit-animation: fadein 0.5s ease-in;
+        -webkit-animation-fill-mode: backwards;
         transition: opacity 0.5s ease-in-out;
+        -webkit-transition: opacity 0.5s ease-in-out;
       }
       .delay-1 {
         animation-delay: 0.3s;
+        -webkit-animation-delay: 0.3s;
       }
       .delay-2 {
         animation-delay: 0.6s;
+        -webkit-animation-delay: 0.6s;
       }
       .delay-3 {
         animation-delay: 0.9s;
+        -webkit-animation-delay: 0.9s;
       }
       .delay-4 {
         animation-delay: 1.2s;
+        -webkit-animation-delay: 1.2s;
       }
       .delay-5 {
         animation-delay: 1.5s;
+        -webkit-animation-delay: 1.5s;
       }
     </style>
   </head>
@@ -66,7 +76,7 @@
           </div>
           <div class="greet delay-4">
             <br /><br />
-            <a href="vodo.cer">下载SSL证书</a>
+            <a id="downcert" href="vodo.cer">下载SSL证书</a>
           </div>
         </div>
       </div>
@@ -93,6 +103,7 @@
               el.style.color = '#4C4';
               el.innerHTML = '设备已信任Vodo SSL证书';
               el.style.opacity = 1;
+              document.getElementById('downcert').style.opacity = 0.3;
             }, 500);
           }, 2000);
         }
