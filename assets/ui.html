@@ -3,6 +3,7 @@
   <head>
     <title>Vodo</title>
     <meta charset="utf-8">
+    <style id="APP_STYLE"></style>
   </head>
   <body>
     <div id="APP"></div>
@@ -10,9 +11,16 @@
       window.init = function init (page) {
         const { render } = require('react-dom')
         const { createElement } = require('react')
+        const { styleEv } = require('../gui/js-css')
         const { default: Root } = require(`../gui/pages/${page}`)
         const rootEl = document.getElementById('APP')
         render(createElement(Root, {}), rootEl)
+
+        function updateStyle () {
+          document.getElementById('APP_STYLE').innerHTML = styleEv.content
+        }
+        updateStyle()
+        styleEv.on('style', updateStyle)
       }
     </script>
   </body>

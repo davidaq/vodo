@@ -1,12 +1,17 @@
 import { Component } from 'react'
+import { EventEmitter } from 'events'
 
 let idCounter = 0
+
+export const styleEv = new EventEmitter()
+styleEv.content = ''
+styleEv.hash = ''
 
 const CSS = (style) => {
   idCounter++
   const CSSModID = idCounter
   const toCssKey = (key) => {
-    return key.replace(/[A-Z]+/, (m) => `-${m.toLowerCase()}`)
+    return key.replace(/[A-Z]+/g, (m) => `-${m.toLowerCase()}`)
   }
   const toCssVal = (val) => {
     if (typeof val === 'number') {
@@ -21,61 +26,56 @@ const CSS = (style) => {
     }
   }
   const walkStyle = (obj, parent, keyInParent, scope = []) => {
-    if (obj) {
-      if (typeof obj === 'object') {
-        if (keyInParent && /^\@keyframes/.test(keyInParent)) {
-          const name = keyInParent.split(/\s+/)[1]
-          idCounter++
-          const id = `${name}-${idCounter}`
-          const keyframes = {
-            id,
-            path: parent.path.concat([keyInParent]),
-            frames: walkStyle(obj)
-          }
-          parent.keyframes[name] = id
-          scope.push(keyframes)
-        } else {
-          const entry = {
-            path: parent ? parent.path.concat([keyInParent]) : [],
-            keyframes: {},
-            props: [],
-            parent
-          }
-          scope.push(entry)
-          Object.keys(obj).forEach(key => {
-            const val = obj[key]
-            walkStyle(val, entry, key, scope)
-          })
+    if (obj && typeof obj === 'object' && !obj.$IS_CSS_VAL) {
+      if (keyInParent && /^\@keyframes/.test(keyInParent)) {
+        const name = keyInParent.split(/\s+/)[1]
+        idCounter++
+        const id = `${name}-${idCounter}`
+        const keyframes = {
+          id,
+          path: parent.path.concat([keyInParent]),
+          frames: walkStyle(obj)
         }
+        parent.keyframes[name] = id
+        scope.push(keyframes)
       } else {
-        if (parent) {
-          const key = toCssKey(keyInParent)
-          let val = toCssVal(obj)
-          if (key === 'animation' || key === 'animation-name') {
-            const animationName = val.split(/\s+/)[0]
-            if (animationName) {
-              let search = parent
-              while (search) {
-                const convName = search.keyframes[animationName]
-                if (convName) {
-                  val = val.replace(animationName, convName)
-                  break
-                }
-                search = search.parent
-              }
+        const entry = {
+          path: parent ? parent.path.concat([keyInParent]) : [],
+          keyframes: {},
+          props: [],
+          parent
+        }
+        scope.push(entry)
+        Object.keys(obj).forEach(key => {
+          const val = obj[key]
+          walkStyle(val, entry, key, scope)
+        })
+      }
+    } else if (parent) {
+      const key = toCssKey(keyInParent)
+      let val = toCssVal(obj)
+      if (key === 'animation' || key === 'animation-name') {
+        const animationName = val.split(/\s+/)[0]
+        if (animationName) {
+          let search = parent
+          while (search) {
+            const convName = search.keyframes[animationName]
+            if (convName) {
+              val = val.replace(animationName, convName)
+              break
             }
+            search = search.parent
           }
-          parent.props.push({
-            isProp: true,
-            key,
-            value: val
-          })
         }
       }
+      parent.props.push({
+        isProp: true,
+        key,
+        value: val
+      })
     }
     return scope
   }
-  const entries = walkStyle(style)
   const cssBlock = (block, scoped) => {
     if (block.path.length === 0 || block.props.length === 0) {
       return ''
@@ -87,21 +87,24 @@ const CSS = (style) => {
         if (pathItem[0] === '@') {
           wrap.push(pathItem)
         } else {
-          if (pathItem.indexOf('&') > -1) {
-            path = pathItem.replace(/\&/g, path)
-          } else {
-            if (path) {
-              path += ' '
+          path = pathItem.split(',').map(item => {
+            item = item.trim()
+            if (item.indexOf('&') > -1) {
+              return item.replace(/\&/g, path)
+            } else {
+              return path + ' ' + item
             }
-            path += pathItem
-          }
+          }).join(',')
         }
       })
-      if (/^\:global\s+/.test(path)) {
-        path = path.replace(/^\:global\s+/, '')
-      } else if (scoped) {
-        path += `[data-c-${CSSModID}]`
-      }
+      path = path.split(',').map(item => {
+        item = item.trim()
+        if (/^\:global\s+/.test(item)) {
+          return item.replace(/^\:global\s+/, '')
+        } else if (scoped) {
+          return item + `[data-c-${CSSModID}]`
+        }
+      }).join(',')
       let ret = `${path} {${block.props.map(v => `${v.key}:${v.value};`).join('')}}\n`
       wrap.forEach(w => {
         ret = `${w} {\n${ret}}\n`
@@ -119,9 +122,11 @@ const CSS = (style) => {
       return cssBlock(entry, scoped)
     }
   }).join('')
-  // console.log(cssContent(entries))
   
-  let styleInjected = false
+  styleEv.content += cssContent(walkStyle(style))
+  styleEv.hash += `#${CSSModID}`
+  styleEv.emit('style')
+
   return (target) => {
     const markElements = element => {
       if (element) {
@@ -144,7 +149,7 @@ const CSS = (style) => {
       const element = oRender.call(this, ...args)
       return markElements(element)
     }
-    if (target instanceof Component) {
+    if (target.prototype && target.prototype.isReactComponent) {
       oRender = target.prototype.render
       target.prototype.render = nRender
       return target

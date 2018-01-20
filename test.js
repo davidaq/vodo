@@ -1,9 +1,5 @@
-const { pki, md } = require('node-forge')
-const { readFileSync } = require('fs')
+require('babel-register')
+require('./globals')
+require('./gui')
+require('./gui/pages/main')
 
-const rootCA = pki.certificateFromPem(readFileSync('./assets/rootCA.crt'))
-console.log(new Buffer(rootCA.extensions[2].value, 'binary'))
-
-const { cer } = JSON.parse(readFileSync('c:/Users/Administrator/.vodo/ca.json').toString())
-const currCA = pki.certificateFromPem(cer)
-console.log(currCA.extensions)
