@@ -22,7 +22,7 @@ export const serve = (req, res) => {
   case '/inject.js':
     injectScript(req, res)
     break
-  case '/zokor.cer':
+  case '/vodo.cer':
     cert(req, res)
     break
   case '/app-data':
@@ -54,11 +54,11 @@ function home (req, res) {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
-      <title>Zokor</title>
+      <title>vodo</title>
     </head>
     <body>
       <div>
-        <a href="zokor.cer">${L('Download SSL Certificate')}</a>
+        <a href="vodo.cer">${L('Download SSL Certificate')}</a>
       </div>
     </body>
   </html>
@@ -74,7 +74,7 @@ function injectScript (req, res) {
 
 function cert (req, res) {
   const rootPair = getRootPair()
-  const fname = `zokor.${rootPair.hash}.cer`
+  const fname = `vodo.${rootPair.hash}.cer`
   res.writeHead(200, {
     'Content-Type': 'application/certificate',
     'Content-Disposition': 'attachment; filename=' + fname
@@ -171,7 +171,7 @@ function liveHTML (req, res) {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Zokor Captured Events</title>
+        <title>Vodo Captured Events</title>
         <meta charset="utf-8">
         <style>
           td {

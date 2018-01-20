@@ -1,6 +1,5 @@
 import { readFileSync, writeFile, mkdir } from 'fs'
 import { EventEmitter } from 'events'
-import { homedir } from 'os'
 import { join } from 'path'
 import { fork } from 'child_process'
 
@@ -44,7 +43,7 @@ process.on('message', msg => {
 
 const initStoreData = JSON.parse(readAssets('app-data.json'))
 try {
-  Object.assign(initStoreData, JSON.parse(readFileSync(join(homedir(), '.zokor', 'app-data.json'))))
+  Object.assign(initStoreData, JSON.parse(readFileSync(userDir('app-data.json')))
 } catch (err) {
 }
 global.Store = createBoundObj(initStoreData || {})
@@ -57,8 +56,8 @@ function propagateStore (value, keepCurrent = false) {
     proc.send({ type: 'STORE_SYNC', value })
   })
   if (!process.env.FORKED) {
-    mkdir(join(homedir(), '.zokor'), () => {
-      writeFile(join(homedir(), '.zokor', 'app-data.json'), value, err => null)
+    mkdir(userDir()), () => {
+      writeFile(userDir('app-data.json'), value, err => null)
     })
   }
 }

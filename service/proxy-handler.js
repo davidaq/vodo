@@ -174,12 +174,12 @@ export const handleProxy = (req, res) => {
             if (/\<head.*?\>/i.test(headContent)) {
               headContent = headContent.replace(
                 /(\<head.*?\>)/i,
-                `$1<script src="/---zokor---/inject.js?${Date.now()}"></script>`
+                `$1<script src="/---vodo---/inject.js?${Date.now()}"></script>`
               )
             } else {
               headContent = headContent.replace(
                 /(\<html.*?\>)/i,
-                `$1<script src="/---zokor---/inject.js?${Date.now()}"></script>`
+                `$1<script src="/---vodo---/inject.js?${Date.now()}"></script>`
               )
             }
             chunk = new Buffer(headContent)

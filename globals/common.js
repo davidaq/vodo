@@ -9,7 +9,7 @@ global.readAssets = name => {
   return readFileSync(join(__dirname, '..', 'assets', name))
 }
 
-global.userDir = (...args) => join(homedir(), '.zokor', ...args)
+global.userDir = (...args) => join(homedir(), '.vodo', ...args)
 
 global.ID = shortid.generate.bind(shortid)
 

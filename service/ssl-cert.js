@@ -84,11 +84,11 @@ function generateCert (domain) {
     },
     {
       name: 'organizationName',
-      value: 'Zokor',
+      value: 'Vodo',
     },
     {
       shortName: 'OU',
-      value: 'ZokorProxy',
+      value: 'VodoProxy',
     }
   ]
   cert.setSubject(attrs)
@@ -167,7 +167,7 @@ export function ensureRootCA () {
   const attrs = [
     {
       name: 'commonName',
-      value: `Zokor ${hash}`
+      value: `Vodo ${hash}`
     },
     {
       name: 'countryName',
@@ -183,11 +183,11 @@ export function ensureRootCA () {
     },
     {
       name: 'organizationName',
-      value: 'Zokor',
+      value: 'Vodo',
     },
     {
       shortName: 'OU',
-      value: 'ZokorProxy',
+      value: 'VodoProxy',
     }
   ]
   cert.setSubject(attrs)

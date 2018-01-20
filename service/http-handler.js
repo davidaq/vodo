@@ -5,9 +5,9 @@ import { certDomain } from './ssl-cert'
 import { handleProxy } from './proxy-handler'
 
 export const handleHTTP = (req, res) => {
-  if (/\/---zokor---\//.test(req.url)) {
-    const pos = req.url.indexOf('/---zokor---/')
-    req.url = req.url.substr(pos + '/---zokor---'.length)
+  if (/\/---vodo---\//.test(req.url)) {
+    const pos = req.url.indexOf('/---vodo---/')
+    req.url = req.url.substr(pos + '/---vodo---'.length)
     serveApi(req, res)
   } else if (req.headers['host'] === 'tt.tt') {
     req.url = req.url.replace(/https?:\/\/.*?\//g, '/')
@@ -20,7 +20,7 @@ export const handleHTTP = (req, res) => {
 }
 
 const connectSSLTunnel = (req, sock, head) => {
-  sock.write('HTTP/1.1 200 Connection Established\r\nProxy-agent: zokor\r\n\r\n')
+  sock.write('HTTP/1.1 200 Connection Established\r\nProxy-agent: vodo\r\n\r\n')
 
   const [domain, port = '443'] = req.url.split(':')
   const startBuffer = [head]

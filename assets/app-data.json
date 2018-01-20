@@ -8,7 +8,7 @@
     "useReplaceRules": true,
     "useHtmlInjectScript": true
   },
-  "htmlInjectScript": "console.log('Hello Zokor')",
+  "htmlInjectScript": "console.log('Hello Vodo')",
   "injectRequestHeaders": {
   },
   "injectResponseHeaders": {
@@ -26,7 +26,7 @@
         "protocol": "file:",
         "domain": "",
         "port": "",
-        "path": "/Users/anqin/Documents/workspace/zokor-app/global.js",
+        "path": "/Users/anqin/Documents/workspace/vodo/global.js",
         "exact": false
       }
     }
