@@ -90,25 +90,30 @@
       }
       setREM();
       window.onresize = setREM;
-      var request = new XMLHttpRequest();
-      request.open('get', 'https://v.o.d.o/', true);
-      request.onload = function () {
-        if (request.responseText === 'VODO, IT WORKS') {
-          var el = document.getElementById('SSL');
-          setTimeout(function () {
-            el.style.animation = 'none';
-            el.style.webkitAnimation = 'none';
-            el.style.opacity = '0';
+      function checkCertInstalled () {
+        var timeout = setTimeout(checkCertInstalled, 2000);
+        var request = new XMLHttpRequest();
+        request.open('get', 'https://v.o.d.o/', true);
+        request.onload = function () {
+          if (request.responseText === 'VODO, IT WORKS') {
+            clearTimeout(timeout);
+            var el = document.getElementById('SSL');
             setTimeout(function () {
-              el.style.color = '#4C4';
-              el.innerHTML = '设备已信任Vodo SSL证书';
-              el.style.opacity = 1;
-              document.getElementById('downcert').style.opacity = 0.3;
-            }, 500);
-          }, 2000);
-        }
-      };
-      request.send('');
+              el.style.animation = 'none';
+              el.style.webkitAnimation = 'none';
+              el.style.opacity = '0';
+              setTimeout(function () {
+                el.style.color = '#4C4';
+                el.innerHTML = '设备已信任Vodo SSL证书';
+                el.style.opacity = 1;
+                document.getElementById('downcert').style.opacity = 0.3;
+              }, 500);
+            }, 2000);
+          }
+        };
+        request.send('');
+      }
+      checkCertInstalled()
     </script>
   </body>
 </html>
