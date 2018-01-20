@@ -1,17 +1,10 @@
-import React, { Component } from 'react'
 import TitleBar from '../components/title-bar'
 
-@CSS({
-  ':global': {
-    'html, body': {
-      padding: 0,
-      margin: 0,
-      width: '100%',
-      height: '100%'
-    }
-  }
-})
+@requireWindow
 class Main extends React.Component {
+  componentWillMount () {
+    this.context.nativeWindow.setMinimumSize(500, 350)
+  }
   render () {
     return (
       <div>

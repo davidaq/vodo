@@ -3,7 +3,8 @@
     "transform-react-jsx",
     "transform-decorators-legacy",
     "transform-react-jsx",
-    "transform-es2015-modules-commonjs"
+    "transform-es2015-modules-commonjs",
+    "transform-class-properties"
   ],
   "highlightCode": false
 }

@@ -102,7 +102,12 @@ const CSS = (style) => {
         if (/^\:global\s+/.test(item)) {
           return item.replace(/^\:global\s+/, '')
         } else if (scoped) {
-          return item + `[data-c-${CSSModID}]`
+          let psuedo = ''
+          item = item.replace(/(\:+[a-z]+)+$/i, (m) => {
+            psuedo = m
+            return ''
+          })
+          return `${item}[data-c-${CSSModID}]${psuedo}`
         }
       }).join(',')
       let ret = `${path} {${block.props.map(v => `${v.key}:${v.value};`).join('')}}\n`
