@@ -55,7 +55,6 @@ function resolveHeaders (headers, rawHeaders, injectHeaders) {
 }
 
 export const handleProxy = (req, res) => {
-  const requestID = ID()
   const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
   req.headers['accept-encoding'] = 'gzip'
   const options = Object.assign({}, parse(req.url))
@@ -86,7 +85,9 @@ export const handleProxy = (req, res) => {
   options.port = `${options.port}`
   options.headers = resolveHeaders(req.headers, req.rawHeaders, Store.injectRequestHeaders)
   options.method = req.method
-  options.requestID = requestID
+  if (Store.config.recordRequest) {
+    options.requestID = ID()
+  }
   if (options.protocol === 'file:') {
     serveStatic(options, req, res)
     return
@@ -96,17 +97,21 @@ export const handleProxy = (req, res) => {
     : requestHTTP
   const startTime = Date.now()
   options.startTime = startTime
-  IPC.request('record-request', requestID, options)
-  IPC.emit('caught-request-begin', {
-    requestID,
-    startTime,
-    protocol: options.protocol,
-    hostname: options.hostname,
-    port: options.port,
-    method: options.method,
-    pathname: options.pathname
-  })
-  console.info(requestID, options.method, options.protocol, options.hostname, options.pathname.substr(0, 50))
+  if (options.requestID) {
+    IPC.request('record-request', options.requestID, options)
+    IPC.emit('caught-request-begin', {
+      requestID: options.requestID,
+      startTime,
+      protocol: options.protocol,
+      hostname: options.hostname,
+      port: options.port,
+      method: options.method,
+      pathname: options.pathname
+    })
+  }
+  if (options.requestID) {
+    console.info(options.requestID, options.method, options.protocol, options.hostname, options.pathname.substr(0, 50))
+  }
   options.timeout = 5000
   const bodyLimit = Store.config.singleRequestLimit * 1024 * 1024
   const proxyReq = request(options, proxyRes => {
@@ -151,14 +156,16 @@ export const handleProxy = (req, res) => {
     }
     const responseHeaders = resolveHeaders(proxyRes.headers, proxyRes.rawHeaders, Store.injectResponseHeaders)
     const responseTime = Date.now()
-    IPC.request('record-request', requestID, {
-      statusCode: proxyRes.statusCode,
-      statusMessage: proxyRes.statusMessage,
-      responseHeaders,
-      responseTime,
-      responseElapse: responseTime - startTime
-    })
-    IPC.emit('caught-request-respond', requestID)
+    if (options.requestID) {
+      IPC.request('record-request', options.requestID, {
+        statusCode: proxyRes.statusCode,
+        statusMessage: proxyRes.statusMessage,
+        responseHeaders,
+        responseTime,
+        responseElapse: responseTime - startTime
+      })
+      IPC.emit('caught-request-respond', options.requestID)
+    }
     res.writeHead(proxyRes.statusCode, proxyRes.statusMessage, responseHeaders)
     res.headWritten = true
     if (!maybeHTML) {
@@ -199,13 +206,15 @@ export const handleProxy = (req, res) => {
       const finishTime = Date.now()
       const finishElapse = finishTime - startTime
       const responseBody = size < bodyLimit ? Buffer.concat(responseBuffer).toString('binary') : null
-      IPC.request('record-request', requestID, {
-        responseBodySize: size,
-        responseBody,
-        finishTime,
-        finishElapse
-      })
-      IPC.emit('caught-request-finish', requestID, { size, finishElapse })
+      if (options.requestID) {
+        IPC.request('record-request', options.requestID, {
+          responseBodySize: size,
+          responseBody,
+          finishTime,
+          finishElapse
+        })
+        IPC.emit('caught-request-finish', options.requestID, { size, finishElapse })
+      }
     })
   })
   let requestBodySize = 0
@@ -219,23 +228,29 @@ export const handleProxy = (req, res) => {
   })
   req.on('end', () => {
     const requestBody = requestBodySize < bodyLimit ? Buffer.concat(requestBuffer).toString('binary') : null
-    IPC.request('record-request', requestID, {
-      requestBodySize,
-      requestBody
-    })
+    if (options.requestID) {
+      IPC.request('record-request', options.requestID, {
+        requestBodySize,
+        requestBody
+      })
+    }
   })
   req.on('error', err => {
     proxyReq.end()
-    IPC.request('record-request', requestID, {
-      error: err.message
-    })
-    IPC.emit('caught-request-error', requestID, err.message)
+    if (options.requestID) {
+      IPC.request('record-request', options.requestID, {
+        error: err.message
+      })
+      IPC.emit('caught-request-error', options.requestID, err.message)
+    }
   })
   proxyReq.on('error', err => {
-    IPC.request('record-request', requestID, {
-      error: err.message
-    })
-    IPC.emit('caught-request-error', requestID, err.message)
+    if (options.requestID) {
+      IPC.request('record-request', options.requestID, {
+        error: err.message
+      })
+      IPC.emit('caught-request-error', options.requestID, err.message)
+    }
     if (!res.headWritten) {
       res.writeHead(502)
       res.end(JSON.stringify({
@@ -308,41 +323,46 @@ const serveStatic = (options, req, res) => {
     res.end()
     return
   }
-  const { requestID } = options
   options.protocol = 'file:'
   options.hostname = '[local file]'
   options.host = '[local file]'
   options.port = '0'
   const startTime = Date.now()
-  IPC.request('record-request', requestID, options)
-  IPC.emit('caught-request-begin', {
-    requestID,
-    startTime,
-    protocol: options.protocol,
-    hostname: options.hostname,
-    port: options.port,
-    method: options.method,
-    pathname: options.pathname
-  })
+  if (options.requestID) {
+    IPC.request('record-request', options.requestID, options)
+    IPC.emit('caught-request-begin', {
+      requestID: options.requestID,
+      startTime,
+      protocol: options.protocol,
+      hostname: options.hostname,
+      port: options.port,
+      method: options.method,
+      pathname: options.pathname
+    })
+  }
   stat(options.pathname, (err, info) => {
     if (err || !info.isFile()) {
       res.writeHead(404, headers)
       res.end('File not found')
-      IPC.request('record-request', requestID, {
-        error: 'file not found'
-      })
-      IPC.emit('caught-request-error', requestID, 'file not found')
+      if (options.requestID) {
+        IPC.request('record-request', options.requestID, {
+          error: 'file not found'
+        })
+        IPC.emit('caught-request-error', options.requestID, 'file not found')
+      }
     } else {
       const responseTime = Date.now()
-      IPC.request('record-request', requestID, Object.assign({
-        statusCode: 200,
-        statusMessage: 'OK',
-        responseHeaders: headers,
-        responseTime,
-        responseElapse: responseTime - startTime,
-        requestBodySize: 0,
-      }, options))
-      IPC.emit('caught-request-respond', requestID)
+      if (options.requestID) {
+        IPC.request('record-request', options.requestID, Object.assign({
+          statusCode: 200,
+          statusMessage: 'OK',
+          responseHeaders: headers,
+          responseTime,
+          responseElapse: responseTime - startTime,
+          requestBodySize: 0,
+        }, options))
+        IPC.emit('caught-request-respond', options.requestID)
+      }
       res.writeHead(200, headers)
       const reader = createReadStream(options.path)
       let encodedRes = reader
@@ -355,14 +375,16 @@ const serveStatic = (options, req, res) => {
       reader.on('end', () => {
         const finishTime = Date.now()
         const finishElapse = finishTime - startTime
-        IPC.request('record-request', requestID, {
-          responseBodySize: info.size,
-          finishTime,
-          finishElapse
-        })
-        IPC.emit('caught-request-finish', requestID, {
-          size: info.size, finishElapse
-        })
+        if (options.requestID) {
+          IPC.request('record-request', options.requestID, {
+            responseBodySize: info.size,
+            finishTime,
+            finishElapse
+          })
+          IPC.emit('caught-request-finish', options.requestID, {
+            size: info.size, finishElapse
+          })
+        }
       })
       reader.on('error', () => res.end())
     }
