@@ -14,7 +14,7 @@ const isWindows = /win/.test(platform())
       position: 'absolute',
       top: -5,
       right: -5,
-      border: '1px solid #333',
+      border: '1px solid #2D2D2D',
       boxShadow: 'inset 0 0 5px #000',
       borderRadius: 5,
       padding: '7px 7px 0 3px',
@@ -23,9 +23,10 @@ const isWindows = /win/.test(platform())
         WebkitAppRegion: 'no-drag',
         width: 25,
         height: 20,
+        borderRadius: 3,
         transition: 'background 0.2s',
         '&:hover': {
-          background: 'rgba(255, 255, 255, 0.2)'
+          background: 'rgba(255, 255, 255, 0.1)'
         },
         '&::after': {
           content: '""',
