@@ -244,6 +244,15 @@ export const handleProxy = (req, res) => {
       IPC.emit('caught-request-error', options.requestID, err.message)
     }
   })
+  req.on('aborted', () => {
+    proxyReq.abort()
+    if (options.requestID) {
+      IPC.request('record-request', options.requestID, {
+        error: 'aborted'
+      })
+      IPC.emit('caught-request-error', options.requestID, 'aborted')
+    }
+  })
   proxyReq.on('error', err => {
     if (options.requestID) {
       IPC.request('record-request', options.requestID, {

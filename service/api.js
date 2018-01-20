@@ -251,7 +251,7 @@ function liveSSE (req, res) {
     'Content-Type': 'text/event-stream; charset=utf-8',
   }, req.corsHeaders))
   const cleanup = []
-  req.socket.on('close', () => {
+  req.on('close', () => {
     cleanup.forEach(fn => fn())
   })
   const keepalive = setInterval(() => {

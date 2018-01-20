@@ -33,19 +33,22 @@ const createHandler = (tlsOptions) => {
   return createServerSSL(tlsOptions, sock => {
     // peek to check if request is websocket
     sock.once('data', peekChunk => {
-      const peek = peekChunk.toString() 
-      if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
-        // for now just proxy the trafic directly to the target server
-        const [domain, port = '443'] = sslOriginUrl[sock.remotePort].split(':')
-        const tunnel = connectSSL(port, domain)
-        pipeOnConnect(sock, tunnel, () => {
-          tunnel.write(peekChunk)
-        })
-      } else {
-        mockHTTP.emit('connection', sock)
-        sock.unshift(peekChunk)
-        sock.resume()
-      }
+      sock.pause()
+      setTimeout(() => {
+        const peek = peekChunk.toString()
+        if (/connection:\s*upgrade/i.test(peek) || /upgrade:\s*websocket/.test(peek)) {
+          // for now just proxy the trafic directly to the target server
+          const [domain, port = '443'] = sslOriginUrl[sock.remotePort].split(':')
+          const tunnel = connectSSL(port, domain)
+          pipeOnConnect(sock, tunnel, () => {
+            tunnel.write(peekChunk)
+          })
+        } else {
+          mockHTTP.emit('connection', sock)
+          sock.unshift(peekChunk)
+          sock.resume()
+        }
+      }, 50)
     })
   })
 }
