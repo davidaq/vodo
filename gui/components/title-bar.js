@@ -1,12 +1,53 @@
+import { platform } from 'os'
+
+const isWindows = /win/.test(platform())
+
 @CSS({
   '.title': {
     backgroundColor: Colors.headBG,
     color: Colors.headFont,
     WebkitAppRegion: 'drag',
     WebkitUserSelect: 'none',
-    '.control-buttons': {
-      display: 'inline-block',
-      paddingLeft: 5,
+    paddingTop: 15,
+    '.control-buttons': isWindows
+    ? {
+      position: 'absolute',
+      top: -5,
+      right: -5,
+      border: '1px solid #333',
+      boxShadow: 'inset 0 0 5px #000',
+      borderRadius: 5,
+      padding: '7px 7px 0 3px',
+      a: {
+        display: 'inline-block',
+        WebkitAppRegion: 'no-drag',
+        width: 25,
+        height: 20,
+        transition: 'background 0.2s',
+        '&:hover': {
+          background: 'rgba(255, 255, 255, 0.2)'
+        },
+        '&::after': {
+          content: '""',
+          display: 'block',
+          width: '100%',
+          height: '100%',
+        },
+        '&.close::after': {
+          background: `url(images/close.png) no-repeat center center`,
+        },
+        '&.minimize::after': {
+          background: `url(images/minimize.png) no-repeat center center`,
+        },
+        '&.maximize::after': {
+          background: `url(images/maximize.png) no-repeat center center`,
+        }
+      }
+    }
+    : {
+      position: 'absolute',
+      top: 0,
+      left: 5,
       '&:hover': {
         'a::after': {
           opacity: '0.7'
@@ -107,9 +148,10 @@ class TitleBar extends Component {
     return (
       <div className="title">
         <div className="control-buttons">
-          <a className="close" onClick={this.onClose}></a>
+          {!isWindows ? <a className="close" onClick={this.onClose}></a> : null}
           <a className="minimize" onClick={this.onMinimize}></a>
           <a className="maximize" onClick={this.onMaximize}></a>
+          {isWindows ? <a className="close" onClick={this.onClose}></a> : null}
         </div>
         <div>
           {children}
