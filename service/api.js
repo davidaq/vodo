@@ -17,7 +17,7 @@ export const serve = (req, res) => {
   req.query = parse(req.url)
   switch (req.query.pathname) {
   case '/':
-    home(req, res)
+    html('api-home.html', req, res)
     break
   case '/inject.js':
     injectScript(req, res)
@@ -33,9 +33,9 @@ export const serve = (req, res) => {
     break
   case '/live':
     if (/text\/event-stream/.test(req.headers['accept'])) {
-      liveSSE(req, res)
+      live(req, res)
     } else {
-      liveHTML(req, res)
+      html('api-live.html', req, res)
     }
     break
   default:
@@ -44,25 +44,11 @@ export const serve = (req, res) => {
   }
 }
 
-function home (req, res) {
+function html (name, req, res) {
   res.writeHead(200, Object.assign({
     'content-type': 'text/html; charset=utf-8',
   }, req.corsHeaders))
-  res.end(`
-  <!DOCTYPE>
-  <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
-      <title>vodo</title>
-    </head>
-    <body>
-      <div>
-        <a href="vodo.cer">${L('Download SSL Certificate')}</a>
-      </div>
-    </body>
-  </html>
-  `)
+  createReadStream(assetsDir(name)).pipe(res)
 }
 
 function injectScript (req, res) {
@@ -163,90 +149,7 @@ function getRecord (req, res) {
   }
 }
 
-function liveHTML (req, res) {
-  res.writeHead(200, Object.assign({
-    'Content-Type': 'text/html; charset=utf-8',
-  }))
-  res.end(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Vodo Captured Events</title>
-        <meta charset="utf-8">
-        <style>
-          td {
-            max-width: 350px;
-            word-break: break-all;
-          }
-          tr:hover td {
-            background: #EEE;
-          }
-        </style>
-      </head>
-      <body>
-        <table border="1" cellspacing="1" cellpadding="5">
-          <thead>
-            <tr id="header">
-            </tr>
-          </thead>
-          <tbody id="tbody">
-          </tbody>
-        </table>
-        <script>
-          var ev = new EventSource(location.href);
-          var store = {};
-          var headers = [];
-          var headered = {};
-          function updateUI (item) {
-            item.el.innerHTML = ''
-            var headerChanged = false;
-            Object.keys(item.data).forEach(function (key) {
-              if (!headered[key]) {
-                headerChanged = true;
-                headers.push(key);
-                headered[key] = true;
-              }
-            });
-            document.getElementById('header').innerHTML = headers.map(function (v) { return '<th>' + v + '</th>' }).join('');
-            item.el.innerHTML = headers.map(function (v) { return '<td>' + (item.data[v] || '') + '</td>' }).join('');
-          }
-          ev.addEventListener('begin', function (event) {
-            var data = JSON.parse(event.data)[0];
-            var el = document.createElement('tr');
-            data.state = 'requesting'
-            store[data.requestID] = { data: data, el: el };
-            updateUI(store[data.requestID]);
-            document.getElementById('tbody').appendChild(el);
-          });
-          ev.addEventListener('respond', function (event) {
-            var requestID = JSON.parse(event.data)[0];
-            store[requestID].data.state = 'receiving';
-            updateUI(store[requestID]);
-          });
-          ev.addEventListener('finish', function (event) {
-            var data = JSON.parse(event.data)
-            var requestID = data[0];
-            data[1].size = (data[1].size / 1024).toFixed(2) + 'KB'
-            store[requestID].data.state = 'finished';
-            Object.assign(store[requestID].data, data[1])
-            updateUI(store[requestID]);
-            delete store[requestID];
-          });
-          ev.addEventListener('error', function (event) {
-            var data = JSON.parse(event.data)
-            var requestID = data[0];
-            store[requestID].data.state = 'error';
-            store[requestID].data.error = data[1];
-            updateUI(store[requestID]);
-            delete store[requestID];
-          });
-        </script>
-      </body>
-    </html>
-  `)
-}
-
-function liveSSE (req, res) {
+function live (req, res) {
   res.writeHead(200, Object.assign({
     'Content-Type': 'text/event-stream; charset=utf-8',
   }, req.corsHeaders))
@@ -258,9 +161,10 @@ function liveSSE (req, res) {
     res.write(`event: keepalive\r\ndata: null\r\n\r\n`)
   }, 15000)
   cleanup.push(() => clearInterval(keepalive))
-  const subscribe = (eventName, sendName) => {
+  const subscribe = (eventName, sendName, dataFn) => {
     const cb = (...args) => {
-      res.write(`event: ${sendName}\r\ndata: ${JSON.stringify(args)}\r\n\r\n`)
+      const data = dataFn ? dataFn(...args) : JSON.stringify(args)
+      res.write(`event: ${sendName}\r\ndata: ${data}\r\n\r\n`)
     }
     IPC.on(eventName, cb)
     cleanup.push(() => {
@@ -271,5 +175,7 @@ function liveSSE (req, res) {
   subscribe('caught-request-respond', 'respond')
   subscribe('caught-request-finish', 'finish')
   subscribe('caught-request-error', 'error')
+  subscribe('store-sync', 'store', (hash, content) => content)
+  res.write(`event: store\r\ndata: ${JSON.stringify(Store)}\r\n\r\n`)
 }
 

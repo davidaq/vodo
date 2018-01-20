@@ -1,0 +1,103 @@
+<!DOCTYPE>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <title>vo.do</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      a {
+        display: inline-block;
+        background: blueviolet;
+        color: white;
+        padding: 0.2rem 0.5rem;
+        text-decoration: none;
+      }
+      #main {
+        padding-bottom: 2rem;
+        width: 99%;
+      }
+      @keyframes fadein {
+        from { opacity: 0 }
+        to { opacity: 1 }
+      }
+      @-webkit-keyframes fadein {
+        from { opacity: 0 }
+        to { opacity: 1 }
+      }
+      .greet {
+        font-size: 0.45rem;
+        text-align: center;
+        line-height: 1rem;
+        color: #777;
+        animation: fadein 0.5s ease-in;
+        animation-fill-mode: backwards;
+        transition: opacity 0.5s ease-in-out;
+      }
+      .delay-1 {
+        animation-delay: 0.3s;
+      }
+      .delay-2 {
+        animation-delay: 0.6s;
+      }
+      .delay-3 {
+        animation-delay: 0.9s;
+      }
+      .delay-4 {
+        animation-delay: 1.2s;
+      }
+      .delay-5 {
+        animation-delay: 1.5s;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="display: table; height: 100%; width: 100%">
+      <div style="display: table-cell; height: 100%; width: 100%; vertical-align: middle">
+        <div id="main">
+          <div class="greet delay-0">欢迎使用Vodo！</div>
+          <div class="greet delay-1">见此页面，设备已连接Vodo代理</div>
+          <div class="greet delay-2" id="SSL">
+            欲抓取HTTPS，需要安装SSL证书
+          </div>
+          <div class="greet delay-4">
+            <br /><br />
+            <a href="vodo.cer">下载SSL证书</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      !function(e,n){"object"==typeof exports&&"undefined"!=typeof module?module.exports=n():"function"==typeof define&&define.amd?define(n):e.unfetch=n()}(this,function(){return"function"==typeof fetch?fetch.bind():function(e,n){return n=n||{},new Promise(function(t,o){function r(){var e,n=[],t=[],o={};return s.getAllResponseHeaders().replace(/^(.*?):\s*([\s\S]*?)$/gm,function(r,s,u){n.push(s=s.toLowerCase()),t.push([s,u]),e=o[s],o[s]=e?e+","+u:u}),{ok:1==(s.status/200|0),status:s.status,statusText:s.statusText,url:s.responseURL,clone:r,text:function(){return Promise.resolve(s.responseText)},json:function(){return Promise.resolve(s.responseText).then(JSON.parse)},blob:function(){return Promise.resolve(new Blob([s.response]))},headers:{keys:function(){return n},entries:function(){return t},get:function(e){return o[e.toLowerCase()]},has:function(e){return e.toLowerCase()in o}}}}var s=new XMLHttpRequest;s.open(n.method||"get",e);for(var u in n.headers)s.setRequestHeader(u,n.headers[u]);s.withCredentials="include"==n.credentials,s.onload=function(){t(r())},s.onerror=o,s.send(n.body)})}});
+    </script>
+    <script>
+      function setREM () {
+        document.getElementsByTagName('html')[0].style.fontSize = Math.min(50, window.innerWidth / 10) + 'px';
+      }
+      setREM();
+      window.onresize = setREM;
+      var request = new XMLHttpRequest();
+      request.open('get', 'https://v.o.d.o/', true);
+      request.onload = function () {
+        if (request.responseText === 'VODO, IT WORKS') {
+          var el = document.getElementById('SSL');
+          setTimeout(function () {
+            el.style.animation = 'none';
+            el.style.webkitAnimation = 'none';
+            el.style.opacity = '0';
+            setTimeout(function () {
+              el.style.color = '#4C4';
+              el.innerHTML = '设备已信任Vodo SSL证书';
+              el.style.opacity = 1;
+            }, 500);
+          }, 2000);
+        }
+      };
+      request.send('');
+    </script>
+  </body>
+</html>

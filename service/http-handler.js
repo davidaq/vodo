@@ -12,6 +12,9 @@ export const handleHTTP = (req, res) => {
   } else if (req.headers['host'] === 'vo.do') {
     req.url = req.url.replace(/https?:\/\/.*?\//g, '/')
     serveApi(req, res)
+  } else if (req.headers['host'] === 'v.o.d.o') {
+    res.writeHead(200, { 'access-control-allow-origin': '*' })
+    res.end('VODO, IT WORKS')
   } else if (!/^https?:\/\//i.test(req.url)) {
     serveApi(req, res)
   } else {
@@ -51,7 +54,7 @@ const connectSSLTunnel = (req, sock, head) => {
 
   // redirect traffic to https handler only if
   // the config switch is on and the connect is SSL
-  if (Store.config.parseHTTPS) {
+  if (Store.config.parseHTTPS || domain === 'vo.do' || domain === 'v.o.d.o') {
     const timeout = setTimeout(() => {
       beginDirect()
     }, 200)

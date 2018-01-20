@@ -161,7 +161,7 @@ export function ensureRootCA () {
   cert.validity.notBefore.setFullYear(curYear - 1)
   cert.validity.notAfter = new Date()
   cert.validity.notAfter.setFullYear(curYear + 10)
-  const timeStr = new Date(Date.now() - new Date().getTimezoneOffset())
+  const timeStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString().replace(/(\.[0-9]+)?Z/, '').replace(/[\-\:]/g, '').replace('T', '.')
   const hash = `${timeStr}.H.${Math.random().toFixed(6).split('.')[1]}`
   const attrs = [
@@ -192,6 +192,15 @@ export function ensureRootCA () {
   ]
   cert.setSubject(attrs)
   cert.setIssuer(attrs)
+  cert.setExtensions([
+    {
+      id: '2.5.29.19',
+      critical: false,
+      value: new Buffer([0x30, 0x03, 0x01, 0x01, 0xc3, 0xbf]).toString(),
+      name: 'basicConstraints',
+      cA: true
+    }
+  ])
   cert.sign(keys.privateKey, md.sha256.create())
   const keyString = pki.privateKeyToPem(keys.privateKey)
   const certString = pki.certificateToPem(cert)

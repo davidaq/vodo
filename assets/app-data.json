@@ -3,7 +3,7 @@
     "port": 8888,
     "allRequestLimit": 200,
     "singleRequestLimit": 1,
-    "recordRequest": true,
+    "recordRequest": false,
     "parseHTTPS": true,
     "useInjectHeaders": true,
     "useReplaceRules": true,

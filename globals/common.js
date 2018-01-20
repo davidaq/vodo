@@ -5,8 +5,10 @@ import shortid from 'shortid'
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
+global.assetsDir = (...args) => join(__dirname, '..', 'assets', ...args)
+
 global.readAssets = name => {
-  return readFileSync(join(__dirname, '..', 'assets', name))
+  return readFileSync(assetsDir(name))
 }
 
 global.userDir = (...args) => join(homedir(), '.vodo', ...args)

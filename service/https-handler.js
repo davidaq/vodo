@@ -44,7 +44,12 @@ const createHandler = (tlsOptions) => {
             tunnel.write(peekChunk)
           })
         } else {
-          mockHTTP.emit('connection', sock)
+          try {
+            mockHTTP.emit('connection', sock)
+          } catch (err) {
+            console.error(err.stack)
+            sock.close()
+          }
           sock.unshift(peekChunk)
           sock.resume()
         }

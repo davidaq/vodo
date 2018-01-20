@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vodo Captured Events</title>
+    <meta charset="utf-8">
+    <style>
+      td {
+        max-width: 350px;
+        word-break: break-all;
+      }
+      tr:hover td {
+        background: #EEE;
+      }
+    </style>
+  </head>
+  <body>
+    <table border="1" cellspacing="1" cellpadding="5">
+      <thead>
+        <tr id="header">
+        </tr>
+      </thead>
+      <tbody id="tbody">
+      </tbody>
+    </table>
+    <script>
+      var ev = new EventSource(location.href);
+      var store = {};
+      var headers = [];
+      var headered = {};
+      function updateUI (item) {
+        item.el.innerHTML = ''
+        var headerChanged = false;
+        Object.keys(item.data).forEach(function (key) {
+          if (!headered[key]) {
+            headerChanged = true;
+            headers.push(key);
+            headered[key] = true;
+          }
+        });
+        document.getElementById('header').innerHTML = headers.map(function (v) { return '<th>' + v + '</th>' }).join('');
+        item.el.innerHTML = headers.map(function (v) { return '<td>' + (item.data[v] || '') + '</td>' }).join('');
+      }
+      ev.addEventListener('begin', function (event) {
+        var data = JSON.parse(event.data)[0];
+        var el = document.createElement('tr');
+        data.state = 'requesting'
+        store[data.requestID] = { data: data, el: el };
+        updateUI(store[data.requestID]);
+        document.getElementById('tbody').appendChild(el);
+      });
+      ev.addEventListener('respond', function (event) {
+        var requestID = JSON.parse(event.data)[0];
+        store[requestID].data.state = 'receiving';
+        updateUI(store[requestID]);
+      });
+      ev.addEventListener('finish', function (event) {
+        var data = JSON.parse(event.data)
+        var requestID = data[0];
+        data[1].size = (data[1].size / 1024).toFixed(2) + 'KB'
+        store[requestID].data.state = 'finished';
+        Object.assign(store[requestID].data, data[1])
+        updateUI(store[requestID]);
+        delete store[requestID];
+      });
+      ev.addEventListener('error', function (event) {
+        var data = JSON.parse(event.data)
+        var requestID = data[0];
+        store[requestID].data.state = 'error';
+        store[requestID].data.error = data[1];
+        updateUI(store[requestID]);
+        delete store[requestID];
+      });
+    </script>
+  </body>
+</html>
