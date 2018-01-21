@@ -1,7 +1,3 @@
-import { platform } from 'os'
-
-const isWindows = /win/.test(platform())
-
 @requireWindow
 @autobind
 class TitleBar extends Component {
@@ -53,17 +49,18 @@ class TitleBar extends Component {
       this.context.nativeWindow.maximize()
     }
   }
-  
+
   @CSS({
     '.title': {
       backgroundColor: Colors.headBG,
+      minHeight: 15,
       color: Colors.headFont,
       WebkitAppRegion: 'drag',
-      WebkitUserSelect: 'none',
-      paddingTop: 15,
+      paddingTop: isWindows ? 0 : 15,
       '.control-buttons': isWindows
       ? {
         position: 'absolute',
+        zIndex: '1',
         top: -5,
         right: -5,
         border: '1px solid #2D2D2D',
@@ -99,6 +96,7 @@ class TitleBar extends Component {
       }
       : {
         position: 'absolute',
+        zIndex: '1',
         top: 0,
         left: 5,
         '&:hover': {
@@ -115,7 +113,6 @@ class TitleBar extends Component {
           marginRight: 5,
           backgroundColor: Colors.osxWinOther,
           opacity: '0.7',
-          cursor: 'default',
           transition: 'opacity 0.3s',
           '&::after': {
             content: '""',

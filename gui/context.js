@@ -16,7 +16,13 @@ class Context extends Component {
         margin: 0,
         width: '100%',
         height: '100%',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        WebkitUserSelect: 'none',
+        background: Colors.mainBG,
+        fontFamily: '微软雅黑'
+      },
+      '*': {
+        cursor: 'default'
       }
     }
   })

@@ -15,6 +15,8 @@ export const Colors = {
   primary: rgba(169, 19, 4),
   headBG: rgba(36, 36, 36),
   headFont: rgba(204, 204, 204),
+  headTabHighlightBG: rgba(20, 20, 20),
+  mainBG: rgba(240, 240, 240),
   font: rgba(20, 20, 20),
   fontInv: rgba(250, 250, 250),
 }

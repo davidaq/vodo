@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import autobind from 'autobind'
+import { platform } from 'os'
 import CSS from './js-css'
 import { Colors } from './colors'
 
+global.isWindows = /win/.test(platform())
 global.CSS = CSS
 global.Colors = Colors
 global.PropTypes = PropTypes
