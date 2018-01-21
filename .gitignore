@@ -2,6 +2,7 @@
 !.gitignore
 !.babelrc
 node_modules/
+dist/
 *.swp
 *.tmp
 package-lock.json
