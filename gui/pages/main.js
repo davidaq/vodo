@@ -9,7 +9,7 @@ class Main extends React.Component {
     return (
       <div>
         <TitleBar>
-          Title!!
+          
         </TitleBar>
         hello world
       </div>

@@ -132,7 +132,7 @@ const CSS = (style) => {
   styleEv.hash += `#${CSSModID}`
   styleEv.emit('style')
 
-  return (target) => {
+  return (target, name, descriptor) => {
     const markElements = element => {
       if (element) {
         if (Array.isArray(element)) {
@@ -154,13 +154,21 @@ const CSS = (style) => {
       const element = oRender.call(this, ...args)
       return markElements(element)
     }
+    if (name && descriptor) {
+      oRender = descriptor.value
+      descriptor.value = nRender
+    } else {
+      if (target.prototype && target.prototype.isReactComponent) {
+        throw new Error('CSS should be annoted on the render method instead of the class')
+      }
+      oRender = target
+      return nRender
+    }
     if (target.prototype && target.prototype.isReactComponent) {
       oRender = target.prototype.render
       target.prototype.render = nRender
       return target
     } else {
-      oRender = target
-      return nRender
     }
   }
 }
