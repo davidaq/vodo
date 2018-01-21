@@ -139,12 +139,14 @@ const CSS = (style) => {
           return element.map(markElements)
         } else if (typeof element === 'object') {
           const sourceProps = element.props || {}
-          return Object.assign({}, element, {
-            props: Object.assign({}, sourceProps, {
+          return {
+            ...element,
+            props: {
+              ...sourceProps,
               [`data-c-${CSSModID}`]: '',
               children: markElements(sourceProps.children)
-            })
-          })
+            }
+          }
         }
       }
       return element
@@ -163,12 +165,6 @@ const CSS = (style) => {
       }
       oRender = target
       return nRender
-    }
-    if (target.prototype && target.prototype.isReactComponent) {
-      oRender = target.prototype.render
-      target.prototype.render = nRender
-      return target
-    } else {
     }
   }
 }

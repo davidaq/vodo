@@ -5,13 +5,18 @@ class Context extends Component {
     nativeWindow: PropTypes.object
   }
 
+  componentWillMount () {
+    this.setState({ titleHeight: 0 })
+  }
+
   getChildContext() {
     const { window, nativeWindow } = this.props
     return { window, nativeWindow }
   }
+
   @CSS({
     ':global': {
-      'html, body': {
+      'html, body, #APP': {
         padding: 0,
         margin: 0,
         width: '100%',

@@ -54,7 +54,7 @@ export function main () {
   IPC.answer('get-record', (requestID) => {
     const record = recordedRequests[requestID]
     if (record) {
-      const ret = Object.assign({}, record)
+      const ret = { ...record }
       delete ret.requestBody
       delete ret.responseBody
       return ret

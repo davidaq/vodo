@@ -32,11 +32,10 @@ export const serve = (req, res) => {
     getRecord(req, res)
     break
   case '/live':
-    if (/text\/event-stream/.test(req.headers['accept'])) {
-      live(req, res)
-    } else {
-      html('api-live.html', req, res)
-    }
+    html('api-live.html', req, res)
+    break
+  case '/live-sse':
+    live(req, res)
     break
   default:
     res.writeHead(404)
@@ -78,7 +77,9 @@ function appData (req, res) {
     req.on('end', () => {
       try {
         const body = JSON.parse(Buffer.concat(buffer))
-        const changed = deepmerge(
+        const changed = /\?shallow/.test(req.url)
+        ? body
+        : deepmerge(
           Store,
           body,
           {
@@ -125,10 +126,10 @@ function getRecord (req, res) {
           })
         }
         if (query.examine) {
-          res.writeHead(200, Object.assign({ 'content-type': 'text/plain' }, req.corsHeaders))
+          res.writeHead(200, { 'content-type': 'text/plain', ...req.corsHeaders })
           res.end(examined)
         } else {
-          res.writeHead(200, Object.assign({ 'content-type': examined || 'text/plain' }, req.corsHeaders))
+          res.writeHead(200, { 'content-type': examined || 'text/plain', ...req.corsHeaders })
           res.end(new Buffer(result, 'binary'))
         }
       }, notFound)
@@ -150,9 +151,10 @@ function getRecord (req, res) {
 }
 
 function live (req, res) {
-  res.writeHead(200, Object.assign({
+  res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
-  }, req.corsHeaders))
+    ...req.corsHeaders
+  })
   const cleanup = []
   req.on('close', () => {
     cleanup.forEach(fn => fn())

@@ -9,7 +9,7 @@
   <body>
     <div id="APP"></div>
     <script>
-      window.init = function init (page, nativeWindow) {
+      window.init = function init (page, nativeWindow, props) {
         window.nativeWindow = nativeWindow
         const { render } = require('react-dom')
         const { createElement: $ } = require('react')
@@ -17,7 +17,7 @@
         const { default: Context } = require(`../gui/context`)
         const { default: Root } = require(`../gui/pages/${page}`)
         const rootEl = document.getElementById('APP')
-        render($(Context, { window, nativeWindow }, $(Root)), rootEl)
+        render($(Context, { window, nativeWindow }, $(Root, props)), rootEl)
 
         function updateStyle () {
           document.getElementById('APP_STYLE').innerHTML = styleEv.content

@@ -57,7 +57,7 @@ function resolveHeaders (headers, rawHeaders, injectHeaders) {
 export const handleProxy = (req, res) => {
   const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
   req.headers['accept-encoding'] = 'gzip'
-  const options = Object.assign({}, parse(req.url))
+  const options = parse(req.url)
   if (options.protocol === 'https:' && !options.port) {
     options.port = '443'
   }
@@ -362,14 +362,15 @@ const serveStatic = (options, req, res) => {
     } else {
       const responseTime = Date.now()
       if (options.requestID) {
-        IPC.request('record-request', options.requestID, Object.assign({
+        IPC.request('record-request', options.requestID, {
           statusCode: 200,
           statusMessage: 'OK',
           responseHeaders: headers,
           responseTime,
           responseElapse: responseTime - startTime,
           requestBodySize: 0,
-        }, options))
+          ...options
+        })
         IPC.emit('caught-request-respond', options.requestID)
       }
       res.writeHead(200, headers)

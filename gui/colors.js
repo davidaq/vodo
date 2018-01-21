@@ -19,5 +19,6 @@ export const Colors = {
   mainBG: rgba(240, 240, 240),
   font: rgba(20, 20, 20),
   fontInv: rgba(250, 250, 250),
+  buttonPrimary: rgba(57, 141, 238)
 }
 

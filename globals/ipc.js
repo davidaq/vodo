@@ -124,7 +124,7 @@ if (process.env.FORKED) {
         return
       }
       const proc = fork(require.resolve('../index'), [], {
-        env: Object.assign({ HEADLESS: '1', FORKED: '1' }, process.env, env || {})
+        env: { HEADLESS: '1', FORKED: '1', ...process.env, ...env }
       })
       processSpawning++
       let ready = false

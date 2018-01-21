@@ -4,10 +4,12 @@
     "allRequestLimit": 200,
     "singleRequestLimit": 1,
     "recordRequest": false,
-    "parseHTTPS": true,
-    "useInjectHeaders": true,
+    "ignoreHTTPS": true,
     "useReplaceRules": true,
-    "useHtmlInjectScript": true
+    "useInjectHeaders": true,
+    "useHtmlInjectScript": true,
+    "simulateSlowNetwork": false,
+    "simulateUnstableNetwork": false
   },
   "htmlInjectScript": "console.log('Hello Vodo')",
   "injectRequestHeaders": {

@@ -3,10 +3,10 @@
 class TitleBar extends Component {
 
   componentWillMount () {
-    this.state = {
+    this.setState({
       maximized: false,
       minimized: false
-    }
+    })
     this.context.nativeWindow.on('minimize', this.onMinimized)
     this.context.nativeWindow.on('maximize', this.onMaximized)
     this.context.nativeWindow.on('restore', this.onRestored)
@@ -16,6 +16,20 @@ class TitleBar extends Component {
     this.context.nativeWindow.removeListener('minimize', this.onMinimized)
     this.context.nativeWindow.removeListener('maximize', this.onMaximized)
     this.context.nativeWindow.removeListener('restore', this.onRestored)
+  }
+
+  componentDidMount () {
+    this.calc()
+  }
+
+  componentDidUpdate () {
+    this.calc()
+  }
+
+  calc () {
+    if (this.props.title) {
+      this.context.nativeWindow.title = `${this.props.title} - Vodo`
+    }
   }
 
   onMinimized () {
@@ -53,10 +67,9 @@ class TitleBar extends Component {
   @CSS({
     '.title': {
       backgroundColor: Colors.headBG,
-      minHeight: 15,
+      minHeight: 35,
       color: Colors.headFont,
       WebkitAppRegion: 'drag',
-      paddingTop: isWindows ? 0 : 15,
       '.control-buttons': isWindows
       ? {
         position: 'absolute',
@@ -139,16 +152,23 @@ class TitleBar extends Component {
           }
         }
       }
+    },
+    '.title-text': {
+      height: 25,
+      lineHeight: 25,
+      textAlign: isWindows ? 'left' : 'center',
+      padding: 5
     }
   })
   render () {
-    const { children } = this.props
+    const { children, title, noMaximize, noMinimize } = this.props
     return (
       <div className="title">
+        {title ? <div className="title-text">{title}</div> : null}
         <div className="control-buttons">
           {!isWindows ? <a className="close" onClick={this.onClose}></a> : null}
-          <a className="minimize" onClick={this.onMinimize}></a>
-          <a className="maximize" onClick={this.onMaximize}></a>
+          {!noMinimize ? <a className="minimize" onClick={this.onMinimize}></a> : null}
+          {!noMaximize ? <a className="maximize" onClick={this.onMaximize}></a> : null}
           {isWindows ? <a className="close" onClick={this.onClose}></a> : null}
         </div>
         <div>

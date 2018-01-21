@@ -28,6 +28,9 @@ export function main () {
   const onStartup = () => {
     const { port } = loadBalancedServer.address()
     console.error(`Background service started on port ${port}`)
+    if (process.env.PORT) {
+      Store.config.port = port
+    }
   }
   loadBalancedServer.listen(process.env.PORT || Store.config.port, onStartup)
 

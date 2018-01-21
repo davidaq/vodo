@@ -1,18 +1,19 @@
 import classnames from 'classnames'
 import TitleBar from '../components/title-bar'
 import { Colors } from '../colors';
+import { open as openConfig } from './config'
 
 @requireWindow
 @autobind
 class Main extends React.Component {
   componentWillMount () {
-    this.state = {
+    this.setState({
       curTab: 0,
       tabs: [
         '抓包记录',
         '转发规则'
       ]
-    }
+    })
     this.context.nativeWindow.setMinimumSize(500, 350)
   }
 
@@ -21,12 +22,13 @@ class Main extends React.Component {
   }
 
   onOpenConfig () {
-
+    openConfig()
   }
 
   @CSS({
     '.nav-pannel': {
-      position: 'relative'
+      position: 'relative',
+      paddingTop: isWindows ? 0 : 15
     },
     '.logo': {
       display: 'inline-block',
@@ -77,7 +79,7 @@ class Main extends React.Component {
       WebkitAppRegion: 'no-drag',
       cursor: 'pointer',
       position: 'absolute',
-      top: isWindows ? 30 : -10,
+      top: isWindows ? 30 : 5,
       right: 5,
       fontSize: 10,
       transition: 'background 0.3s',
@@ -117,3 +119,15 @@ class Main extends React.Component {
 
 export default Main
 
+export const open = () => {
+  const options = {
+    width: 600,
+    height: 450,
+  }
+  openUI('main', options, (win) => {
+    win.on('close', () => {
+      win.close(true)
+      nw.App.quit()
+    })
+  })
+}
