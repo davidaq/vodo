@@ -1,5 +1,5 @@
 import './globals'
-import { open as openMain } from './pages/config'
+import { open as openMain } from './pages/main'
 
 if (typeof nw !== 'undefined') {
   openMain()
