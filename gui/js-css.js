@@ -90,7 +90,7 @@ const CSS = (style) => {
           path = pathItem.split(',').map(item => {
             item = item.trim()
             if (item.indexOf('&') > -1) {
-              return item.replace(/\&/g, path)
+              return path.split(',').map(part => item.replace(/\&/g, part)).join(',')
             } else {
               return path + ' ' + item
             }
@@ -108,6 +108,8 @@ const CSS = (style) => {
             return ''
           })
           return `${item}[data-c-${CSSModID}]${psuedo}`
+        } else {
+          return item
         }
       }).join(',')
       let ret = `${path} {${block.props.map(v => `${v.key}:${v.value};`).join('')}}\n`

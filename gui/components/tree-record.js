@@ -1,0 +1,138 @@
+import ScrollToMe from './scroll-to-me'
+import classnames from 'classnames'
+
+@autobind
+class TreeRecord extends Component {
+
+  shouldComponentUpdate () {
+    return true
+  }
+
+  onToggleExpand () {
+    const { data } = this.props
+    if (data.expanded) {
+      data.expanded = false
+    } else {
+      const walk = (node) => {
+        node.expanded = true
+        if (node.subList.length === 1 && node.leaf.length === 0) {
+          walk(node.subMap[node.subList[0]])
+        }
+      }
+      walk(data)
+    }
+    this.forceUpdate()
+  }
+
+  @CSS({
+    '.node': {
+      fontSize: 11,
+      lineHeight: 25
+    },
+    '.fa': {
+      marginRight: 5
+    },
+    '.name, .leaf': {
+      cursor: 'pointer',
+      '&.select': {
+        background: '#EEE'
+      }
+    },
+    '.name.select': {
+      background: '#F7F7F7'
+    },
+    '.leaf.select': {
+      background: '#EEE'
+    },
+    '.hot .hotbg': {
+      '@keyframes hot': {
+        '0%': {
+          background: 'rgba(0, 0, 0, 0)'
+        },
+        '20%': {
+          background: 'rgba(0, 0, 0, 0.2)'
+        },
+        '100%': {
+          background: 'rgba(0, 0, 0, 0)'
+        }
+      },
+      animation: 'hot 1s ease-out'
+    }
+  })
+  render () {
+    const { data, onSelect, selected } = this.props
+    const hasSelect = !!data.leafId[selected]
+    const padding = (data.depth - 1) * 20 + 5
+    if (hasSelect && !data.expanded) {
+      data.expanded = true
+    }
+    return (
+      <div className="tree-record">
+        {data.name === '#ROOT' ? (
+          data.subList.map(subName => (
+            <TreeRecord
+              key={subName}
+              data={data.subMap[subName]}
+              onSelect={onSelect}
+              selected={selected}
+            />
+          ))
+        ) : (
+          <div className="node">
+            <div
+              className={classnames('name', {
+                select: hasSelect,
+                hot: Date.now() - data.updateTime < 1000
+              })}
+              style={{ paddingLeft: padding }}
+              onClick={this.onToggleExpand}
+            >
+              <div className="hotbg">
+                <i className={classnames('fa', data.expanded ? 'fa-folder-open' : 'fa-folder')} />
+                {data.name}
+              </div>
+            </div>
+            {data.expanded ? (
+              <div className="children">
+                <div className="sub">
+                  {data.subList.map(subName => (
+                    <TreeRecord key={subName} data={data.subMap[subName]} onSelect={onSelect} selected={selected} />
+                  ))}
+                </div>
+                <div className="leaf">
+                  {data.leaf.map(leaf => (
+                    <div
+                      key={leaf.record.requestID}
+                      className={classnames('leaf', {
+                        select: hasSelect && selected === leaf.record.requestID,
+                        hot: Date.now() - leaf.record.startTime < 1000
+                      })}
+                      onClick={() => onSelect(leaf.record)}
+                      style={{ paddingLeft: padding + 20 }}
+                    >
+                      <div className="hotbg">
+                        <i className={classnames('fa', {
+                          'fa-upload': leaf.record.status === 'requesting',
+                          'fa-download': leaf.record.status === 'receiving',
+                          'fa-check': leaf.record.status === 'finish',
+                          'fa-close': leaf.record.status === 'error',
+                        })} />
+                        {hasSelect && selected === leaf.record.requestID ? (
+                          <ScrollToMe />
+                        ): null}
+                        {leaf.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    )
+  }
+}
+
+export default TreeRecord
+

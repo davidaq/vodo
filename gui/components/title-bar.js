@@ -57,10 +57,19 @@ class TitleBar extends Component {
   }
 
   onMaximize () {
-    if (this.state.maximized) {
-      this.context.nativeWindow.restore()
+    const nativeWindow = this.context.nativeWindow
+    if (isOsX) {
+      if (nativeWindow.isFullscreen) {
+        nativeWindow.leaveFullscreen()
+      } else {
+        nativeWindow.enterFullscreen()
+      }
     } else {
-      this.context.nativeWindow.maximize()
+      if (this.state.maximized) {
+        nativeWindow.restore()
+      } else {
+        nativeWindow.maximize()
+      }
     }
   }
 
@@ -113,25 +122,29 @@ class TitleBar extends Component {
         top: 0,
         left: 5,
         '&:hover': {
-          'a::after': {
-            opacity: '0.7'
+          'a::after,a::before': {
+            opacity: '1'
           }
         },
         a: {
           display: 'inline-block',
+          position: 'relative',
           WebkitAppRegion: 'no-drag',
           width: 11,
           height: 11,
           borderRadius: 10,
           marginRight: 5,
-          backgroundColor: Colors.osxWinOther,
           opacity: '0.7',
           transition: 'opacity 0.3s',
-          '&::after': {
+          '&::after, &::before': {
             content: '""',
             display: 'block',
-            width: '100%',
-            height: '100%',
+            position: 'absolute',
+            top: 5,
+            left: 2,
+            width: 7,
+            height: 1,
+            backgroundColor: '#000',
             opacity: '0',
             transition: 'opacity 0.3s'
           },
@@ -140,15 +153,27 @@ class TitleBar extends Component {
           },
           '&.close': {
             backgroundColor: Colors.osxWinClose,
+            '&::before': {
+              transform: 'rotate(45deg)'
+            },
             '&::after': {
-              background: `url(images/close.png) no-repeat center center`,
+              transform: 'rotate(-45deg)'
             }
           },
-          '&.minimize::after': {
-            background: `url(images/minimize.png) no-repeat center center`,
+          '&.minimize': {
+            backgroundColor: Colors.osxWinMinimize,
+            '&::after, &::before': {
+              backgroundColor: 'rgb(134, 69, 2)'
+            }
           },
-          '&.maximize::after': {
-            background: `url(images/maximize.png) no-repeat center center`,
+          '&.maximize': {
+            backgroundColor: Colors.osxWinMaximize,
+            '&::after, &::before': {
+              backgroundColor: 'rgb(12, 86, 1)'
+            },
+            '&::after': {
+              transform: 'rotate(90deg)'
+            }
           }
         }
       }

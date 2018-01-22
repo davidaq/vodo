@@ -6,7 +6,8 @@ import { platform } from 'os'
 import CSS from './js-css'
 import { Colors } from './colors'
 
-global.isWindows = /win/.test(platform())
+global.isOsX = /^darwin/i.test(platform())
+global.isWindows = /^win/i.test(platform())
 
 global.CSS = CSS
 global.Colors = Colors
@@ -15,7 +16,9 @@ global.React = React
 global.Component = React.Component
 global.autobind = autobind
 global.serviceAddr = `http://127.0.0.1:${Store.config.port}`
-global.serviceEv = new EventSource(`${global.serviceAddr}/live-sse`)
+global.serviceEv = typeof EventSource !== 'undefined'
+  ? new EventSource(`${global.serviceAddr}/live-sse`)
+  : { addEventListener() {} }
 global.storeEv = new EventEmitter()
 serviceEv.addEventListener('store', event => {
   storeEv.value = JSON.parse(event.data)

@@ -32,6 +32,7 @@ const createHandler = (tlsOptions) => {
   })
   return createServerSSL(tlsOptions, sock => {
     // peek to check if request is websocket
+    sock.on('error', () => null)
     sock.once('data', peekChunk => {
       sock.pause()
       setTimeout(() => {

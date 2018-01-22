@@ -10,8 +10,9 @@ export const rgba = (r, g, b, a = 1) => {
 }
 
 export const Colors = {
-  osxWinClose: rgba(200, 50, 50),
-  osxWinOther: rgba(30, 140, 50),
+  osxWinClose: rgba(251, 72, 72),
+  osxWinMinimize: rgba(253, 178, 3),
+  osxWinMaximize: rgba(41, 200, 51),
   primary: rgba(169, 19, 4),
   headBG: rgba(36, 36, 36),
   headFont: rgba(204, 204, 204),

@@ -65,7 +65,7 @@ export function main () {
   
   IPC.answer('get-record-field', (requestID, field) => {
     const record = recordedRequests[requestID]
-    if (record) {
+    if (record && record.hasOwnProperty(field)) {
       return {
         result: record[field],
         examined: record[`${field}:examined`]

@@ -205,11 +205,15 @@ export const handleProxy = (req, res) => {
       }
       const finishTime = Date.now()
       const finishElapse = finishTime - startTime
-      const responseBody = size < bodyLimit ? Buffer.concat(responseBuffer).toString('binary') : null
+      const responseBodyIsTooLarge = size > bodyLimit
+      const responseBody = !responseBodyIsTooLarge
+        ? Buffer.concat(responseBuffer).toString('binary')
+        : null
       if (options.requestID) {
         IPC.request('record-request', options.requestID, {
           responseBodySize: size,
           responseBody,
+          responseBodyIsTooLarge,
           finishTime,
           finishElapse
         })
@@ -227,10 +231,14 @@ export const handleProxy = (req, res) => {
     }
   })
   req.on('end', () => {
-    const requestBody = requestBodySize < bodyLimit ? Buffer.concat(requestBuffer).toString('binary') : null
     if (options.requestID) {
+      const requestBodyIsTooLarge = requestBodySize > bodyLimit
+      const requestBody = !requestBodyIsTooLarge
+        ? Buffer.concat(requestBuffer).toString('binary')
+        : null
       IPC.request('record-request', options.requestID, {
         requestBodySize,
+        requestBodyIsTooLarge,
         requestBody
       })
     }

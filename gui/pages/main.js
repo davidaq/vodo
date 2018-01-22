@@ -2,6 +2,8 @@ import classnames from 'classnames'
 import TitleBar from '../components/title-bar'
 import { Colors } from '../colors';
 import { open as openConfig } from './config'
+import Record from './record'
+import Rules from './Rules'
 
 @requireWindow
 @autobind
@@ -84,6 +86,7 @@ class Main extends React.Component {
       fontSize: 10,
       transition: 'background 0.3s',
       padding: '3px 5px',
+      cursor: 'pointer',
       '&:hover': {
         background: 'rgba(255, 255, 255, 0.15)',
       }
@@ -92,26 +95,55 @@ class Main extends React.Component {
       height: 5,
       background: Colors.primary,
       boxShadow: '0 -3px 3px rgba(0, 0, 0, 0.5)'
+    },
+    '.wrap': {
+      display: 'flex',
+      flexFlow: 'column',
+      height: '100%',
+      '.title': {
+        flex: 'none'
+      },
+      '.main': {
+        flex: 'auto',
+        position: 'relative',
+        '&-wrap': {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%'
+        }
+      }
     }
   })
   render () {
     return (
-      <div>
-        <TitleBar>
-          <div className="nav-pannel">
-            <div className="logo"></div>
-            <div className="tabs">
-              {this.state.tabs.map((name, index) => (
-                <a className={classnames({ tab: true, active: this.state.curTab === index })} onClick={() => this.onSwitchTab(index)}>
-                  {name}
-                </a>
-              ))}
+      <div className="wrap">
+        <div className="title">
+          <TitleBar>
+            <div className="nav-pannel">
+              <div className="logo"></div>
+              <div className="tabs">
+                {this.state.tabs.map((name, index) => (
+                  <a key={index} className={classnames({ tab: true, active: this.state.curTab === index })} onClick={() => this.onSwitchTab(index)}>
+                    {name}
+                  </a>
+                ))}
+              </div>
+              <a className="config fa fa-cog" onClick={this.onOpenConfig}></a>
+              <div className="bottom"></div>
             </div>
-            <a className="config fa fa-cog" onClick={this.onOpenConfig}></a>
-            <div className="bottom"></div>
+          </TitleBar>
+        </div>
+        <div className="main">
+          <div className="main-wrap">
+            {this.state.curTab === 0 ? (
+              <Record />
+            ) : (
+              <Rules />
+            )}
           </div>
-        </TitleBar>
-        hello world
+        </div>
       </div>
     )
   }
@@ -121,7 +153,7 @@ export default Main
 
 export const open = () => {
   const options = {
-    width: 600,
+    width: 700,
     height: 450,
   }
   openUI('main', options, (win) => {
