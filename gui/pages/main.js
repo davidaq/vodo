@@ -16,7 +16,7 @@ class Main extends React.Component {
         '转发规则'
       ]
     })
-    this.context.nativeWindow.setMinimumSize(500, 350)
+    this.context.nativeWindow.setMinimumSize(700, 350)
   }
 
   onSwitchTab (index) {
@@ -153,8 +153,8 @@ export default Main
 
 export const open = () => {
   const options = {
-    width: 700,
-    height: 450,
+    width: 800,
+    height: 550,
   }
   openUI('main', options, (win) => {
     win.on('close', () => {

@@ -193,3 +193,44 @@ export const Button = CSS({
   <a className={classnames(className, 'button')} {...props}>{children}</a>
 ))
 
+export const Tabs = uniformInput(
+  CSS({
+    '.tabs': {
+      display: 'inline-block',
+      border: '1px solid #CCC',
+      borderRadius: 5,
+      overflow: 'hidden'
+    },
+    '.tab': {
+      display: 'inline-block',
+      padding: 5,
+      width: 70,
+      fontSize: 10,
+      lineHeight: 16,
+      color: '#AAA',
+      borderLeft: '1px solid #CCC',
+      transition: 'background 0.3s, box-shadow 0.3s',
+      background: '#EEE',
+      textAlign: 'center',
+      '&.first': {
+        borderLeft: 'none'
+      },
+      '&:hover': {
+        boxShadow: 'inset 0 0 5px rgba(0, 0, 0, 0.3)'
+      },
+      '&.active': {
+        color: '#333',
+        fontSize: 13,
+        background: '#FFF'
+      }
+    }
+  })(({ options, value, onChange }) => (
+    <div className="tabs">
+      {options.map((item, index) => (
+        <div className={classnames('tab', { first: index === 0, active: value === item.value })} onClick={() => onChange(item.value)}>
+          {item.label}
+        </div>
+      ))}
+    </div>
+  ))
+)

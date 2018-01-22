@@ -5,16 +5,16 @@ import { prompt } from './prompt'
 @autobind
 class Config extends Component {
   componentWillMount () {
-    this.setState({ store: storeEv.value })
-    storeEv.on('store', this.onStoreChange)
+    this.setState({ store: eventBus.store })
+    eventBus.on('store', this.onStoreChange)
   }
 
   componentWillUnmount () {
-    storeEv.removeListener('store', this.onStoreChange)
+    eventBus.removeListener('store', this.onStoreChange)
   }
 
   onStoreChange () {
-    this.setState({ store: storeEv.value })
+    this.setState({ store: eventBus.store })
   }
 
   onSetVal (val, shallow = false) {

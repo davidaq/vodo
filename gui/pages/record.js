@@ -1,8 +1,8 @@
 import classnames from 'classnames'
-import { EventEmitter } from 'events'
 import TreeRecord from '../components/tree-record'
 import ListRecord from '../components/list-record'
-import RecordDetail from '../components/record-detail'
+import RecordDetail from '../record-detail'
+import { Tabs } from '../components/form'
 
 let recordList
 let recordMap
@@ -24,8 +24,6 @@ function resetRecord () {
   }
 }
 resetRecord()
-
-const recordEv = new EventEmitter()
 
 serviceEv.addEventListener('begin', (event) => {
   const [ data ] = JSON.parse(event.data)
@@ -71,7 +69,7 @@ serviceEv.addEventListener('begin', (event) => {
       return a.name.localeCompare(b.name)
     }
   })
-  recordEv.emit('record')
+  eventBus.emit('record', data.requestID)
 })
 
 serviceEv.addEventListener('respond', (event) => {
@@ -79,7 +77,7 @@ serviceEv.addEventListener('respond', (event) => {
   const oData = recordMap[requestID]
   if (oData) {
     oData.status = 'receiving'
-    recordEv.emit('record')
+    eventBus.emit('record', requestID)
   }
 })
 
@@ -88,7 +86,7 @@ serviceEv.addEventListener('finish', (event) => {
   const oData = recordMap[requestID]
   if (oData) {
     oData.status = 'finish'
-    recordEv.emit('record')
+    eventBus.emit('record', requestID)
   }
 })
 
@@ -97,7 +95,7 @@ serviceEv.addEventListener('error', (event) => {
   const oData = recordMap[requestID]
   if (oData) {
     oData.status = 'error'
-    recordEv.emit('record')
+    eventBus.emit('record', requestID)
   }
 })
 
@@ -112,19 +110,18 @@ class Record extends Component {
       sideWidth: 300,
       refreshKey: Date.now()
     })
-    recordEv.on('record', this.onRecordUpdate)
+    eventBus.on('record', this.onRecordUpdate)
     this.context.window.addEventListener('resize', this.onWindowResize)
   }
 
   componentWillUnmount () {
-    recordEv.removeListener('record', this.onRecordUpdate)
+    eventBus.removeListener('record', this.onRecordUpdate)
     this.context.window.removeEventListener('resize', this.onWindowResize)
   }
 
   onRecordUpdate () {
     if (!this.updateTimeout) {
       this.updateTimeout = setTimeout(() => {
-        console.log('update')
         this.updateTimeout = null
         this.setState({ refreshKey: Date.now() })
       }, 100)
@@ -210,34 +207,6 @@ class Record extends Component {
             background: 'rgba(0, 0, 0, 0.1)'
           }
         },
-        '.mode-wrap': {
-          display: 'inline-block',
-          border: '1px solid #CCC',
-          borderRadius: 5,
-          overflow: 'hidden'
-        },
-        '.mode': {
-          display: 'inline-block',
-          padding: 5,
-          width: 70,
-          fontSize: 10,
-          lineHeight: 16,
-          color: '#AAA',
-          borderLeft: '1px solid #CCC',
-          transition: 'background 0.3s, box-shadow 0.3s',
-          background: '#EEE',
-          '&.first': {
-            borderLeft: 'none'
-          },
-          '&:hover': {
-            boxShadow: 'inset 0 0 5px rgba(0, 0, 0, 0.3)'
-          },
-          '&.active': {
-            color: '#333',
-            fontSize: 13,
-            background: '#FFF'
-          }
-        }
       },
       '.records': {
         flex: 'auto',
@@ -267,6 +236,7 @@ class Record extends Component {
       },
       '.resizer': {
         position: 'absolute',
+        zIndex: '1',
         top: 0,
         left: 0,
         height: '100%',
@@ -290,14 +260,11 @@ class Record extends Component {
       <div className="wrap">
         <div className="side" style={{ width: sideWidth }}>
           <div className="mode-switch">
-            <div className="mode-wrap">
-              <div className={classnames('mode', 'first', { active: entriesMode === 'tree' })} onClick={() => this.setState({ entriesMode: 'tree' })}>
-                地址结构
-              </div>
-              <div className={classnames('mode', { active: entriesMode === 'list' })} onClick={() => this.setState({ entriesMode: 'list' })}>
-                时序列表
-              </div>
-            </div>
+            <Tabs
+              options={[{ label: '结构树', value: 'tree' }, { label: '时序列表', value: 'list' }]}
+              value={this.state.entriesMode}
+              onChange={entriesMode => this.setState({ entriesMode })}
+            />
             <a className="clear-btn fa fa-trash-o" onClick={this.onClear} />
           </div>
           <div className="records">
@@ -315,7 +282,7 @@ class Record extends Component {
           <div className="main-wrap">
             {selectedRecord ? (
               <RecordDetail
-                key={`${selectedRecord.requestID}-${selectedRecord.status}`}
+                key={selectedRecord.requestID}
                 requestID={selectedRecord.requestID}
               />
              ): null}

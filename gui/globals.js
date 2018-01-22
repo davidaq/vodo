@@ -19,10 +19,10 @@ global.serviceAddr = `http://127.0.0.1:${Store.config.port}`
 global.serviceEv = typeof EventSource !== 'undefined'
   ? new EventSource(`${global.serviceAddr}/live-sse`)
   : { addEventListener() {} }
-global.storeEv = new EventEmitter()
+global.eventBus = new EventEmitter()
 serviceEv.addEventListener('store', event => {
-  storeEv.value = JSON.parse(event.data)
-  storeEv.emit('store')
+  eventBus.store = JSON.parse(event.data)
+  eventBus.emit('store')
 })
 
 global.requireWindow = (Comp) => {

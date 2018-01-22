@@ -3,6 +3,7 @@ import { open, close, read as readFD, stat, exists, createReadStream } from 'fs'
 import deepmerge from 'deepmerge'
 import { getRootCertPair } from './ssl-cert'
 import { examine } from './mime'
+import qs from 'qs'
 
 export const serve = (req, res) => {
   req.corsHeaders = {
@@ -101,10 +102,7 @@ function appData (req, res) {
 function getRecord (req, res) {
   const query = {}
   if (req.query.search) {
-    req.query.search.substr(1).split('&').forEach(field => {
-      const [key, val] = field.split('=')
-      query[decodeURIComponent(key)] = decodeURIComponent(val)
-    })
+    Object.assign(query, qs.parse(req.query.search.substr(1)))
   }
   if (query.requestID) {
     const notFound = () => {
