@@ -5,6 +5,7 @@ import { open as openConfig } from './config'
 import Record from './record'
 import { openFile as openDetail } from './record-detail'
 import Rules from './Rules'
+import { fork } from 'child_process'
 
 @requireWindow
 @autobind
@@ -161,14 +162,22 @@ class Main extends React.Component {
 export default Main
 
 export const open = () => {
-  const options = {
-    width: 800,
-    height: 550,
-  }
-  openUI('main', options, (win) => {
-    win.on('close', () => {
-      win.close(true)
-      nw.App.quit()
-    })
-  }, openDetail)
+  const cp = fork(require.resolve('../../index'), {
+    env: { HEADLESS: '1' }
+  })
+  cp.once('message', () => {
+    const options = {
+      width: 800,
+      height: 550,
+    }
+    openUI('main', options, (win) => {
+      win.on('close', () => {
+        win.close(true)
+        nw.App.quit()
+      })
+    }, openDetail)
+  })
+  cp.on('close', () => {
+    nw.App.quit()
+  })
 }

@@ -1,10 +1,10 @@
 import { fork } from 'child_process'
 import { EventEmitter } from 'events'
 
+if (process.send) {
+  process.send({ type: 'PROCESS_STARTED' })
+}
 if (process.env.FORKED) {
-  setTimeout(() => {
-    process.send({ type: 'PROCESS_STARTED' })
-  }, 50)
   const handlers = {}
   const waiters = {}
   class IPC extends EventEmitter {

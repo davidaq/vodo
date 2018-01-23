@@ -5,6 +5,7 @@ import { EventEmitter } from 'events'
 import { platform } from 'os'
 import CSS from './js-css'
 import { Colors } from './colors'
+import path from 'path'
 
 global.isOsX = /^darwin/i.test(platform())
 global.isWindows = /^win/i.test(platform())
@@ -50,6 +51,7 @@ global.requireWindow = (Comp) => {
 global.openUI = (page, options = {}, callback) => {
   const { props = {}, ...winOptions } = options
   winOptions.frame = false
+  winOptions.icon = path.join(__dirname, '../assets/images/logo.png')
   nw.Window.open('../assets/ui.html', winOptions, (win, ...args) => {
     win.window.document.addEventListener('DOMContentLoaded', () => {
       win.window.init(page, win, props)
