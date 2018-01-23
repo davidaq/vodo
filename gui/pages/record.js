@@ -1,8 +1,8 @@
 import classnames from 'classnames'
 import TreeRecord from '../components/tree-record'
 import ListRecord from '../components/list-record'
-import RecordDetail from '../record-detail'
 import { Tabs } from '../components/form'
+import RecordDetail from './record-detail'
 
 let recordList
 let recordMap
@@ -211,6 +211,9 @@ class Record extends Component {
       '.records': {
         flex: 'auto',
         position: 'relative',
+        '&-pad': {
+          height: 50
+        },
         '&-wrap': {
           position: 'absolute',
           top: 0,
@@ -231,8 +234,7 @@ class Record extends Component {
         top: 0,
         left: 0,
         height: '100%',
-        width: '100%',
-        overflow: 'auto'
+        width: '100%'
       },
       '.resizer': {
         position: 'absolute',
@@ -274,6 +276,7 @@ class Record extends Component {
               ) : (
                 <ListRecord data={recordList} onSelect={this.onSelect} selected={selected} refreshKey={refreshKey} />
               )}
+              <div className="records-pad" />
             </div>
           </div>
         </div>

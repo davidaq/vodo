@@ -82,12 +82,13 @@ export const handleProxy = (req, res) => {
   if (!Store.config.useHtmlInjectScript) {
     maybeHTML = false
   }
+  if (Store.config.recordRequest && !req.headers['x-vodo-no-record']) {
+    options.requestID = ID()
+  }
+  delete req.headers['x-vodo-no-record']
   options.port = `${options.port}`
   options.headers = resolveHeaders(req.headers, req.rawHeaders, Store.injectRequestHeaders)
   options.method = req.method
-  if (Store.config.recordRequest) {
-    options.requestID = ID()
-  }
   if (options.protocol === 'file:') {
     serveStatic(options, req, res)
     return

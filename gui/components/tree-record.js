@@ -3,9 +3,13 @@ import classnames from 'classnames'
 
 @autobind
 class TreeRecord extends Component {
-
-  shouldComponentUpdate () {
-    return true
+  
+  componentWillMount () {
+    const { data, selected } = this.props
+    const hasSelect = !!data.leafId[selected]
+    if (hasSelect && !data.expanded) {
+      data.expanded = true
+    }
   }
 
   onToggleExpand () {
@@ -63,9 +67,6 @@ class TreeRecord extends Component {
     const { data, onSelect, selected } = this.props
     const hasSelect = !!data.leafId[selected]
     const padding = (data.depth - 1) * 20 + 5
-    if (hasSelect && !data.expanded) {
-      data.expanded = true
-    }
     return (
       <div className="tree-record">
         {data.name === '#ROOT' ? (

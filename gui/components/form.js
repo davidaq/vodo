@@ -227,7 +227,11 @@ export const Tabs = uniformInput(
   })(({ options, value, onChange }) => (
     <div className="tabs">
       {options.map((item, index) => (
-        <div className={classnames('tab', { first: index === 0, active: value === item.value })} onClick={() => onChange(item.value)}>
+        <div
+          key={item.value}
+          className={classnames('tab', { first: index === 0, active: value === item.value })}
+          onClick={() => onChange(item.value)}
+        >
           {item.label}
         </div>
       ))}

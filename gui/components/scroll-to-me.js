@@ -15,11 +15,8 @@ class ScrollToMe extends Component {
       const domRect = dom.getBoundingClientRect()
       const scrRect = scroller.getBoundingClientRect()
       if (domRect.top < scrRect.top || domRect.bottom > scrRect.bottom) {
-        let targetTop = Math.round(domRect.top - scrRect.top + scrRect.height / 2)
-        if (targetTop < 0) {
-          targetTop = 0
-        }
-        scroller.scrollTop = targetTop
+        let targetTop = Math.round(domRect.top - (scrRect.top + scrRect.height / 2 - domRect.height))
+        scroller.scrollTop += targetTop
       }
     }, 100)
   }

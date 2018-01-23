@@ -15,6 +15,7 @@ global.PropTypes = PropTypes
 global.React = React
 global.Component = React.Component
 global.autobind = autobind
+
 global.serviceAddr = `http://127.0.0.1:${Store.config.port}`
 global.serviceEv = typeof EventSource !== 'undefined'
   ? new EventSource(`${global.serviceAddr}/live-sse`)
@@ -24,6 +25,18 @@ serviceEv.addEventListener('store', event => {
   eventBus.store = JSON.parse(event.data)
   eventBus.emit('store')
 })
+
+const oFetch = global.fetch
+global.fetch = (url, options = {}) => {
+  options = {
+    ...options,
+    headers: {
+      ...options.headers,
+      'x-vodo-no-record': 'true'
+    }
+  }
+  return oFetch(url, options)
+}
 
 global.requireWindow = (Comp) => {
   Comp.contextTypes = {

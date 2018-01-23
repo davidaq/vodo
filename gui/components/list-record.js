@@ -4,10 +4,6 @@ import classnames from 'classnames'
 @autobind
 class ListRecord extends Component {
 
-  shouldComponentUpdate () {
-    return true
-  }
-
   @CSS({
     '.list': {
       fontSize: 11,

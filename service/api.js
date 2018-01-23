@@ -9,7 +9,7 @@ export const serve = (req, res) => {
   req.corsHeaders = {
     'Access-Control-Allow-Origin': req.headers['origin'] || '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type, x-vodo-no-record'
   }
   if (req.method === 'options') {
     res.writeHead(200, req.corsHeaders)

@@ -37,13 +37,15 @@ export function main () {
       const limit = Store.config.allRequestLimit * 1024 * 1024
       while (recordedBodySize > limit && truncatedRecordNum < recordedRequestsList.length) {
         const record = recordedRequests[recordedRequestsList[truncatedRecordNum]]
-        record.isTrucated = true
+        record.isTruncated = true
         if (record.requestBody) {
           recordedBodySize -= record.requestBody.length
         }
         if (record.responseBody) {
           recordedBodySize -= record.responseBody.length
         }
+        record.headers = {}
+        record.responseHeaders = {}
         truncatedRecordNum++
       }
     } catch (err) {
