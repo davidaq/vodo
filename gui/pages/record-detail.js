@@ -1,26 +1,29 @@
 import { Tabs } from '../components/form'
 import BodyDisplayer from '../components/body-displayer'
 import TitleBar from '../components/title-bar'
-import { createWriteStream } from 'fs'
-import { get as httpGet } from 'http'
+import { readFile, writeFile } from 'fs'
 
 @requireWindow
 @autobind
 class RecordDetail extends Component {
   
   componentWillMount () {
-    const { requestID, initState } = this.props
+    const { requestID, initState, isStatic } = this.props
     if (initState) {
       this.setState(initState)
     } else {
       this.setState({ tab: 'basic' })
     }
-    this.updateState(requestID)
-    eventBus.on('record', this.updateState)
+    if (!isStatic) {
+      this.updateState(requestID)
+      eventBus.on('record', this.updateState)
+    }
   }
 
   componentWillUnmount () {
-    eventBus.removeListener('record', this.updateState)
+    if (!this.props.isStatic) {
+      eventBus.removeListener('record', this.updateState)
+    }
   }
 
   updateState (requestID) {
@@ -62,13 +65,7 @@ class RecordDetail extends Component {
   }
 
   onOpenWindow () {
-    openUI('record-detail', {
-      props: { requestID: this.props.requestID, independent: true, initState: this.state },
-      width: 500,
-      height: 400
-    }, win => {
-      win.setMinimumSize(400, 300)
-    })
+    open({ requestID: this.props.requestID, independent: true, initState: this.state })
   }
 
   onSave (ev) {
@@ -79,33 +76,53 @@ class RecordDetail extends Component {
     if (!ext) {
       ext = 'data'
     }
-    const window = this.context.window
-    if (window.fileInput) {
-      window.fileInput.parentElement.removeChild(window.fileInput)
-    }
-    const fileInput = document.createElement('input')
-    fileInput.type = 'file'
-    fileInput.nwsaveas = `vodo-response.${ext}`
-    Object.assign(fileInput.style, {
-      position: 'absolute',
-      top: '-10px',
-      left: '-10px',
-      width: '1px',
-      height: '1px'
-    })
-    window.document.body.appendChild(fileInput)
-    window.fileInput = fileInput
-    fileInput.onchange = (ev) => {
-      const out = createWriteStream(fileInput.files[0].path)
-      out.on('error', err => null)
-      const url = `${serviceAddr}/get-record?requestID=${info.requestID}&field=responseBody`
-      const req = httpGet(url, res => {
-        res.pipe(out)
+    const name = this.state.info.pathname.split('/').pop().substr(0, 40)
+    this.context.window.chooseFile(`${name}.${ext}`, fpath => {
+      const url = `${serviceAddr}/get-record?requestID=${this.props.requestID}&field=responseBody`
+      fetch(url)
+      .then(r => r.arrayBuffer())
+      .then(r => {
+        writeFile(fpath, new Buffer(new Uint8Array(r)), err => null)
       })
-      req.on('error', err => out.end())
-      req.end()
+    })
+  }
+
+  onExport () {
+    const info = { ...this.state.info }
+    let hint = info.error ? '请求存在错误' : ''
+    if (!hint && !info.finishTime) {
+      hint = '请求尚未完成'
     }
-    fileInput.click()
+    if (!hint || confirm(`${hint}，是否继续？`)) {
+      const prepare = [new Promise(resolve => this.context.window.chooseFile(`vodo-response.json`, resolve))]
+      if (this.state.requestBodyMime) {
+        const url = `${serviceAddr}/get-record?requestID=${this.props.requestID}&field=requestBody`
+        prepare.push(
+          fetch(url)
+          .then(r => r.arrayBuffer())
+          .then(r => {
+            const base64 = new Buffer(new Uint8Array(r)).toString('base64')
+            info.requestBodyHref = `data:${this.state.requestBodyMime};base64,${base64}`
+          })
+        )
+      }
+      if (this.state.responseBodyMime) {
+        const url = `${serviceAddr}/get-record?requestID=${this.props.requestID}&field=responseBody`
+        prepare.push(
+          fetch(url)
+          .then(r => r.arrayBuffer())
+          .then(r => {
+            const base64 = new Buffer(new Uint8Array(r)).toString('base64')
+            info.responseBodyHref = `data:${this.state.responseBodyMime};base64,${base64}`
+          })
+        )
+      }
+      Promise.all(prepare)
+      .then(([fpath]) => {
+        const content = JSON.stringify({ ...this.state, info, tab: 'basic' })
+        writeFile(fpath, content, err => null)
+      })
+    }
   }
 
   @CSS({
@@ -113,12 +130,6 @@ class RecordDetail extends Component {
       display: 'flex',
       flexFlow: 'column',
       height: '100%'
-    },
-    a: {
-      cursor: 'pointer',
-      '&:hover': {
-        textDecoration: 'underline'
-      }
     },
     '.title': {
       flex: 'none'
@@ -140,17 +151,19 @@ class RecordDetail extends Component {
     },
     '.tabs': {
       textAlign: 'center',
-      '.fa': {
+      '.extra': {
         position: 'absolute',
         right: 5,
         top: 6,
-        padding: '5px 7px',
-        borderRadius: 5,
-        cursor: 'pointer',
-        transition: 'background 0.3s',
         fontSize: 10,
-        '&:hover': {
-          background: 'rgba(0, 0, 0, 0.1)'
+        '.fa': {
+          padding: '5px 7px',
+          borderRadius: 5,
+          cursor: 'pointer',
+          transition: 'background 0.3s',
+          '&:hover': {
+            background: 'rgba(0, 0, 0, 0.1)'
+          }
         }
       }
     },
@@ -181,7 +194,7 @@ class RecordDetail extends Component {
       fontSize: 12,
       lineHeight: 16,
       padding: 5,
-      wordBreak: 'break-all',
+      wordWrap: 'break-word',
       '.label': {
         flex: 'none',
         width: '30%',
@@ -199,7 +212,14 @@ class RecordDetail extends Component {
         flex: 'auto',
         WebkitUserSelect: 'initial',
         maxHeight: 100,
-        overflow: 'auto'
+        overflow: 'auto',
+        a: {
+          cursor: 'pointer',
+          color: '#26E',
+          '&:hover': {
+            textDecoration: 'underline'
+          }
+        },
       }
     }
   })
@@ -223,9 +243,12 @@ class RecordDetail extends Component {
                 value={tab}
                 onChange={tab => this.setState({ tab })}
               />
-              {this.props.independent ? null : (
-                <a className="fa fa-external-link" onClick={this.onOpenWindow} />
-              )}
+              <div className="extra">
+                {this.props.independent ? null : (
+                  <a className="fa fa-external-link" onClick={this.onOpenWindow} title="打开单独窗口" />
+                )}
+                <a className="fa fa-save" onClick={this.onExport} title="保存请求记录" />
+              </div>
             </div>
             {tab === 'basic' ? (
               <div>
@@ -356,7 +379,7 @@ class RecordDetail extends Component {
                 </div>
                 {info.query ? (
                   <BodyDisplayer
-                    href={`${serviceAddr}/get-record?requestID=${info.requestID}&field=query`}
+                    href={`data:text/plain,${info.query}`}
                     mime="application/x-www-form-urlencoded"
                   />
                 ): (
@@ -411,7 +434,7 @@ class RecordDetail extends Component {
                   </div>
                 ) : (
                   <BodyDisplayer
-                    href={`${serviceAddr}/get-record?requestID=${info.requestID}&field=requestBody`}
+                    href={info.requestBodyHref || `${serviceAddr}/get-record?requestID=${info.requestID}&field=requestBody`}
                     mime={requestBodyMime}
                   />
                 )}
@@ -472,7 +495,7 @@ class RecordDetail extends Component {
                       </div>
                     </div>
                     <BodyDisplayer
-                      href={`${serviceAddr}/get-record?requestID=${info.requestID}&field=responseBody`}
+                      href={info.responseBodyHref || `${serviceAddr}/get-record?requestID=${info.requestID}&field=responseBody`}
                       mime={responseBodyMime}
                     />
                   </div>
@@ -499,3 +522,27 @@ function comaNumber (num) {
 }
 
 export default RecordDetail
+
+export const open = (props) => {
+  openUI('record-detail', {
+    props,
+    width: 500,
+    height: 400
+  }, win => {
+    win.setMinimumSize(400, 300)
+  })
+}
+
+export const openFile = (fpath) => {
+  readFile(fpath, (err, content) => {
+    try {
+      content = JSON.parse(content)
+      if (content.info && content.info.requestID) {
+        open({ requestID: content.info.requestID, initState: content, isStatic: true, independent: true })
+      }
+    } catch (err) {
+      console.error(err.stack)
+      alert('文件打开失败')
+    }
+  })
+}

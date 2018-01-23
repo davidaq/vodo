@@ -3,6 +3,7 @@ import TitleBar from '../components/title-bar'
 import { Colors } from '../colors';
 import { open as openConfig } from './config'
 import Record from './record'
+import { openFile as openDetail } from './record-detail'
 import Rules from './Rules'
 
 @requireWindow
@@ -25,6 +26,10 @@ class Main extends React.Component {
 
   onOpenConfig () {
     openConfig()
+  }
+
+  onOpenDetail () {
+    this.context.window.chooseFile(openDetail)
   }
 
   @CSS({
@@ -77,18 +82,19 @@ class Main extends React.Component {
         }
       }
     },
-    '.config': {
+    '.extra': {
       WebkitAppRegion: 'no-drag',
-      cursor: 'pointer',
       position: 'absolute',
       top: isWindows ? 30 : 5,
       right: 5,
       fontSize: 10,
-      transition: 'background 0.3s',
-      padding: '3px 5px',
-      cursor: 'pointer',
-      '&:hover': {
-        background: 'rgba(255, 255, 255, 0.15)',
+      '.fa': {
+        padding: '3px 5px',
+        cursor: 'pointer',
+        transition: 'background 0.3s',
+        '&:hover': {
+          background: 'rgba(255, 255, 255, 0.15)',
+        }
       }
     },
     '.bottom': {
@@ -130,7 +136,10 @@ class Main extends React.Component {
                   </a>
                 ))}
               </div>
-              <a className="config fa fa-cog" onClick={this.onOpenConfig}></a>
+              <div className="extra">
+                <a className="fa fa-folder-open-o" onClick={this.onOpenDetail} title="打开请求记录"></a>
+                <a className="fa fa-cog" onClick={this.onOpenConfig} title="设置"></a>
+              </div>
               <div className="bottom"></div>
             </div>
           </TitleBar>
@@ -161,5 +170,5 @@ export const open = () => {
       win.close(true)
       nw.App.quit()
     })
-  })
+  }, openDetail)
 }

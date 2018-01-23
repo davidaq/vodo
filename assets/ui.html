@@ -9,8 +9,54 @@
   <body>
     <div id="APP"></div>
     <script>
-      window.init = function init (page, nativeWindow, props) {
+      window.init = function init (page, nativeWindow, props, onDrop) {
         window.nativeWindow = nativeWindow
+
+        document.addEventListener('mousemove', onMouseUpdate, false)
+        document.addEventListener('mouseenter', onMouseUpdate, false)
+        function onMouseUpdate(e) {
+          window.mouseX = e.pageX
+          window.mouseY = e.pageY
+        }
+
+        let fileInput
+        window.chooseFile = (saveFilename, cb) => {
+          if (typeof saveFilename === 'function') {
+            cb = saveFilename
+            saveFilename = null
+          }
+          if (fileInput) {
+            fileInput.parentElement.removeChild(fileInput)
+          }
+          fileInput = document.createElement('input')
+          fileInput.type = 'file'
+          if (saveFilename) {
+            fileInput.nwsaveas = saveFilename
+          }
+          Object.assign(fileInput.style, {
+            position: 'absolute',
+            top: '-10px',
+            left: '-10px',
+            width: '1px',
+            height: '1px'
+          })
+          document.body.appendChild(fileInput)
+          fileInput.onchange = (ev) => {
+            cb(fileInput.files[0].path)
+          }
+          fileInput.click()
+        }
+
+        window.ondragover = e => {
+          e.preventDefault()
+        }
+        window.ondrop = e => {
+          e.preventDefault()
+          console.log(e)
+          onDrop && onDrop(e.dataTransfer.files[0].path)
+          return false
+        }
+
         const { render } = require('react-dom')
         const { createElement: $ } = require('react')
         const { styleEv } = require('../gui/js-css')

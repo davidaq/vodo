@@ -1,5 +1,6 @@
-import classnames from 'classnames'
+import { findDOMNode } from 'react-dom'
 
+@requireWindow
 @autobind
 class DataViewer extends Component {
   componentWillMount () {
@@ -7,9 +8,44 @@ class DataViewer extends Component {
     const isObj = data && typeof data === 'object'
     const isArray = isObj && Array.isArray(data)
     const keys = isObj && Object.keys(data)
-    const expanded = depth < 2
+    const expanded = depth <= 2
     const rawVal = !isObj && JSON.stringify(data)
     this.setState({ keys, isObj, isArray, expanded, rawVal })
+  }
+
+  componentDidMount () {
+    const { data, name, depth = 0,  path = '' } = this.props
+    const nameEl = findDOMNode(this).querySelector('.name')
+    if (nameEl) {
+      nameEl.addEventListener('contextmenu', ev => {
+        ev.preventDefault()
+        ev.stopPropagation()
+        const menu = new nw.Menu()
+        if (depth > 0) {
+          menu.append(new nw.MenuItem({
+            label: '复制属性路径',
+            click: () => {
+              nw.Clipboard.get().set(path, 'text')
+            }
+          }))
+          menu.append(new nw.MenuItem({
+            label: '复制属性键',
+            click: () => {
+              nw.Clipboard.get().set(name, 'text')
+            }
+          }))
+        }
+        menu.append(new nw.MenuItem({
+          label: '复制属性值',
+          click: () => {
+            nw.Clipboard.get().set(JSON.stringify(data, false, '  '), 'text')
+          }
+        }))
+        const { mouseX, mouseY } = this.context.window
+        const { x, y } = this.context.nativeWindow
+        menu.popup(mouseX + x, mouseY + y)
+      })
+    }
   }
 
   onToggleExpand () {
@@ -33,7 +69,10 @@ class DataViewer extends Component {
         textOverflow: 'ellipsis',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        transition: 'background 0.3s'
+        transition: 'background 0.3s',
+        '&.root': {
+          width: 'auto'
+        }
       },
       '.vary': {
         display: 'inline-block',
@@ -57,20 +96,22 @@ class DataViewer extends Component {
     }
   })
   render () {
-    const { data, depth, name } = this.props
+    let { data, depth = 0, name, path = '' } = this.props
     const { keys, isObj, isArray, expanded, rawVal } = this.state
     const nextDepth = depth + 1
     const isEmpty = isObj && keys.length === 0
     return (
       <div className="data">
-        {name ? (
-          <div className="name" onClick={this.onToggleExpand} title={name}>
+        {depth > 0 ? (
+          <div className="name" onClick={this.onToggleExpand} title={path}>
             {name}
           </div>
-        ) : null}
-        {name ? (
-          <div className="vary">:</div>
-        ) : null}
+        ) : (
+          <div className="name root">
+            根
+          </div>
+        )}
+        <div className="vary">:</div>
         {isObj ? (
           <div className="vary" onClick={this.onToggleExpand}>
             {isArray ? '[' : '{'}
@@ -82,6 +123,7 @@ class DataViewer extends Component {
               {keys.map(key => (
                 <DataViewer
                   key={key}
+                  path={isArray ? `${path}[${key}]` : path ? `${path}.${key}` : key}
                   name={key}
                   data={data[key]}
                   depth={nextDepth}

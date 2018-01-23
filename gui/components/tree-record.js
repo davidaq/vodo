@@ -37,16 +37,13 @@ class TreeRecord extends Component {
       marginRight: 5
     },
     '.name, .leaf': {
-      cursor: 'pointer',
-      '&.select': {
-        background: '#EEE'
-      }
+      cursor: 'pointer'
     },
     '.name.select': {
       background: '#F7F7F7'
     },
     '.leaf.select': {
-      background: '#EEE'
+      background: '#DDD'
     },
     '.hot .hotbg': {
       '@keyframes hot': {

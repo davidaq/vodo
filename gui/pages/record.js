@@ -99,6 +99,8 @@ serviceEv.addEventListener('error', (event) => {
   }
 })
 
+let prevSelected = ''
+
 @autobind
 @requireWindow
 class Record extends Component {
@@ -106,7 +108,7 @@ class Record extends Component {
   componentWillMount () {
     this.setState({
       entriesMode: 'tree',
-      selected: '',
+      selected: prevSelected,
       sideWidth: 300,
       refreshKey: Date.now()
     })
@@ -115,6 +117,7 @@ class Record extends Component {
   }
 
   componentWillUnmount () {
+    prevSelected = this.state.selected
     eventBus.removeListener('record', this.onRecordUpdate)
     this.context.window.removeEventListener('resize', this.onWindowResize)
   }

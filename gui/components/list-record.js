@@ -15,7 +15,7 @@ class ListRecord extends Component {
     '.leaf': {
       paddingLeft: 5,
       '&.select': {
-        background: '#EEE'
+        background: '#DDD'
       }
     },
     '.hot .hotbg': {

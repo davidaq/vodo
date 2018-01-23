@@ -44,8 +44,8 @@ class BodyDisplayer extends Component {
     if (oW && oH) {
       this.setState({ imgW: oW, imgH: oH })
       let { width: cW, height: cH } = $el.getBoundingClientRect()
-      cW -= 30
-      cH -= 30
+      cW -= 50
+      cH -= 50
       let w = oW
       let h = oH
       if (w > cW) {
@@ -104,13 +104,35 @@ class BodyDisplayer extends Component {
       }
     },
     '.text': {
-      cursor: 'text',
-      whiteSpace: 'pre-wrap',
-      wordBreak: 'break-all',
-      wordWrap: 'break-word',
-      fontSize: 12,
-      fontFamily: 'Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace',
-      WebkitUserSelect: 'initial'
+      background: '#FFF',
+      '.line': {
+        display: 'flex',
+        flexFlow: 'row',
+        fontSize: 12,
+        lineHeight: 18,
+        fontFamily: 'Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace',
+        '.num': {
+          flex: 'none',
+          overflow: 'hidden',
+          width: 50,
+          textAlign: 'right',
+          background: 'rgba(0, 0, 0, 0.1)',
+          color: '#777',
+          paddingRight: 5
+        },
+        '.content': {
+          flex: 'auto',
+          WebkitUserSelect: 'initial',
+          whiteSpace: 'pre-wrap',
+          wordWrap: 'break-word',
+          wordBreak: 'break-word',
+          cursor: 'text',
+          paddingLeft: 5
+        },
+        '&:nth-child(even)': {
+          background: '#FFC'
+        }
+      }
     }
   })
   render () {
@@ -129,7 +151,12 @@ class BodyDisplayer extends Component {
           </div>
         ) : category === 'text' ? (
           <div className="text">
-            {this.state.text}
+            {this.state.lines && this.state.lines.map((line, index) => (
+              <div className="line" key={index}>
+                <div className="num">{index + 1}</div>
+                <div className="content">{line}</div>
+              </div>
+            ))}
           </div>
         ) : this.state.data ? (
           <div>
@@ -142,7 +169,12 @@ class BodyDisplayer extends Component {
             </center>
             {this.state.showRaw ? (
               <div className="text">
-                {this.state.text}
+                {this.state.lines && this.state.lines.map((line, index) => (
+                  <div className="line" key={index}>
+                    <div className="num">{index + 1}</div>
+                    <div className="content">{line}</div>
+                  </div>
+                ))}
               </div>
             ) : (
               <DataViewer data={this.state.data} />
