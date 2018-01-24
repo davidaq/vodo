@@ -6,6 +6,7 @@ import { platform } from 'os'
 import CSS from './js-css'
 import { Colors } from './colors'
 import path from 'path'
+import { fork } from 'child_process'
 
 global.isOsX = /^darwin/i.test(platform())
 global.isWindows = /^win/i.test(platform())
@@ -16,16 +17,6 @@ global.PropTypes = PropTypes
 global.React = React
 global.Component = React.Component
 global.autobind = autobind
-
-global.serviceAddr = `http://127.0.0.1:${Store.config.port}`
-global.serviceEv = typeof EventSource !== 'undefined'
-  ? new EventSource(`${global.serviceAddr}/live-sse`)
-  : { addEventListener() {} }
-global.eventBus = new EventEmitter()
-serviceEv.addEventListener('store', event => {
-  eventBus.store = JSON.parse(event.data)
-  eventBus.emit('store')
-})
 
 const oFetch = global.fetch
 global.fetch = (url, options = {}) => {
@@ -59,3 +50,106 @@ global.openUI = (page, options = {}, callback) => {
     callback && callback(win, ...args)
   })
 }
+
+global.eventBus = new EventEmitter()
+global.serviceAddr = `http://127.0.0.1:${Store.config.port}`
+
+global.eventBus.on('service:store', data => {
+  global.eventBus.store = data
+  global.eventBus.emit('store')
+})
+
+// if (typeof EventSource === 'undefined') {
+//   class EventSource {
+//     addEventListener (name, fn) {
+//       fn({ data: JSON.stringify({ name }) })
+//     }
+//   }
+//   global.EventSource = EventSource
+// }
+
+let serviceEv
+let connDieTimeout
+const connAlive = () => {
+  if (connDieTimeout) {
+    clearTimeout(connDieTimeout)
+  }
+  connDieTimeout = setTimeout(() => {
+    connDieTimeout = null
+    global.eventBus.connected = false
+    global.eventBus.emit('connection')
+  }, 6000)
+}
+
+const connectService = () => {
+  if (typeof EventSource === 'undefined') {
+    return
+  }
+  if (serviceEv) {
+    serviceEv.close()
+  }
+  serviceEv = new EventSource(`${global.serviceAddr}/live-sse`)
+  ;['keepalive', 'store', 'begin', 'respond', 'finish', 'error'].forEach(eventName => {
+    serviceEv.addEventListener(eventName, event => {
+      global.eventBus.emit(`service:${eventName}`, JSON.parse(event.data))
+      if (!global.eventBus.connected) {
+        global.eventBus.connected = true
+        global.eventBus.emit('connection')
+      }
+      connAlive()
+    })
+  })
+}
+
+let serviceProcess
+const startService = () => {
+  if (typeof EventSource === 'undefined') {
+    return
+  }
+  const cp = fork(require.resolve('../index'), {
+    env: { HEADLESS: '1' }
+  })
+  serviceProcess = cp
+  cp.on('message', function onMessage (msg) {
+    if (msg.type === 'listening') {
+      global.eventBus.hasServiceProcess = true
+      global.eventBus.emit('connection')
+      cp.removeListener('message', onMessage)
+      global.serviceAddr = `http://127.0.0.1:${msg.port}`
+      setTimeout(connectService, 2000)
+    }
+  })
+  const startTime = Date.now()
+  cp.on('close', () => {
+    global.eventBus.hasServiceProcess = false
+    global.eventBus.emit('connection')
+    serviceProcess = null
+    const upTime = Date.now() - startTime
+    if (upTime < 10000) {
+      if (!serviceEv) {
+        connectService()
+      }
+      setTimeout(startService, 5000).unref()
+    } else {
+      setTimeout(startService, 1000).unref()
+    }
+  })
+}
+startService()
+
+eventBus.on('change-service', (addr) => {
+  if (/^http/.test(addr)) {
+    global.serviceAddr = addr
+    connectService()
+  } else {
+    Store.config.port = (addr | 0) || 8888
+    if (serviceProcess) {
+      serviceProcess.kill()
+      setTimeout(() => {
+        global.eventBus.hasServiceProcess = true
+        global.eventBus.emit('connection')
+      }, 100)
+    }
+  }
+})
+

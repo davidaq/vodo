@@ -21,9 +21,13 @@ export function examine (buffer) {
     } catch (err) {
     }
     try {
-      const p = qs.parse(buffer.toString())
-      for (const key in p) {
-        if (key.length > 30) {
+      const parts = buffer.toString().split('&').map(v => v.split('='))
+      if (parts.length === 0 && !parts[0][1]) {
+        return 'text/plain'
+      }
+      for (let i = 0; i < parts.length; i++) {
+        const [key, val] = parts[i]
+        if (encodeURIComponent(decodeURIComponent(key)) !== key) {
           return 'text/plain'
         }
       }

@@ -7,12 +7,25 @@ if (process.send) {
 if (process.env.FORKED) {
   const handlers = {}
   const waiters = {}
+  let dieTimeout
+  const alive = () => {
+    if (dieTimeout) {
+      clearTimeout(dieTimeout)
+    }
+    dieTimeout = setTimeout(() => {
+      console.log('parent dead')
+      process.exit(1)
+    }, 3000)
+  }
   class IPC extends EventEmitter {
     constructor () {
       super()
       this.isMain = false
       process.on('message', (msg) => {
         switch (msg.type) {
+        case 'ALIVE':
+          alive()
+          break
         case 'EVENT':
           super.emit(msg.eventName, ...msg.args)
           break
@@ -81,6 +94,10 @@ if (process.env.FORKED) {
 } else {
   const childProcess = []
   let processSpawning = 0
+
+  setInterval(() => {
+    childProcess.forEach(p => p.send({ type: 'ALIVE' }))
+  }, 2000).unref()
   
   const answerers = {}
   function getAnswerers (uri) {

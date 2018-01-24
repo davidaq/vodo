@@ -226,7 +226,7 @@ class RecordDetail extends Component {
   render () {
     const { info, requestBodyMime, responseBodyMime, requestContentType, responseContentType, tab } = this.state
     if (!info) {
-      return <div />
+      return <TitleBar title="请求详情" />
     }
     return (
       <div className="wrap">

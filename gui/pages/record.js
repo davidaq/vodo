@@ -25,8 +25,7 @@ function resetRecord () {
 }
 resetRecord()
 
-serviceEv.addEventListener('begin', (event) => {
-  const [ data ] = JSON.parse(event.data)
+eventBus.on('service:begin', ([data]) => {
   data.status = 'requesting'
   recordList.push(data)
   recordMap[data.requestID] = data
@@ -72,8 +71,7 @@ serviceEv.addEventListener('begin', (event) => {
   eventBus.emit('record', data.requestID)
 })
 
-serviceEv.addEventListener('respond', (event) => {
-  const [ requestID ] = JSON.parse(event.data)
+eventBus.on('service:respond', ([requestID]) => {
   const oData = recordMap[requestID]
   if (oData) {
     oData.status = 'receiving'
@@ -81,8 +79,7 @@ serviceEv.addEventListener('respond', (event) => {
   }
 })
 
-serviceEv.addEventListener('finish', (event) => {
-  const [ requestID ] = JSON.parse(event.data)
+eventBus.on('service:finish', ([requestID]) => {
   const oData = recordMap[requestID]
   if (oData) {
     oData.status = 'finish'
@@ -90,8 +87,7 @@ serviceEv.addEventListener('finish', (event) => {
   }
 })
 
-serviceEv.addEventListener('error', (event) => {
-  const [ requestID ] = JSON.parse(event.data)
+eventBus.on('service:error', ([requestID]) => {
   const oData = recordMap[requestID]
   if (oData) {
     oData.status = 'error'

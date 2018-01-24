@@ -159,7 +159,7 @@ function live (req, res) {
   })
   const keepalive = setInterval(() => {
     res.write(`event: keepalive\r\ndata: null\r\n\r\n`)
-  }, 15000)
+  }, 5000)
   cleanup.push(() => clearInterval(keepalive))
   const subscribe = (eventName, sendName, dataFn) => {
     const cb = (...args) => {

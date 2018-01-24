@@ -31,10 +31,27 @@ export function main () {
     if (process.env.PORT) {
       Store.config.port = port
     }
+    if (process.send) {
+      process.send({ type: 'listening', port })
+    }
+    IPC.start({ SERVICE: 'ssl-cert' }, 2)
+    IPC.start({ SERVICE: 'https-handler' }, 3)
+    IPC.start({ SERVICE: 'http-handler' }, 3)
   }
   loadBalancedServer.listen(process.env.PORT || Store.config.port, onStartup)
 
-  IPC.start({ SERVICE: 'ssl-cert' }, 2)
-  IPC.start({ SERVICE: 'https-handler' }, 3)
-  IPC.start({ SERVICE: 'http-handler' }, 3)
+  const getMyAddress = () => {
+    const trySite = ['baidu.com', 'github.com', 'bing.com', 'aliyun.com', 'npmjs.org']
+    const site = trySite[Math.floor(Math.random() * trySite.length)]
+    const conn = connectTCP(80, site, () => {
+      Store.addr = conn.address().address
+      console.log(Store.addr)
+      conn.end(`GET / HTTP/1.0\r\nHost: ${site}\r\n\r\n`)
+      conn.resume()
+      setTimeout(getMyAddress, 600000)
+    })
+    conn.on('error', err => setTimeout(getMyAddress, 5000))
+  }
+  getMyAddress()
 }
+

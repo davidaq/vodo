@@ -9,6 +9,7 @@
   },
   "author": "",
   "license": "ISC",
+  "chromium-args": "--no-proxy-server",
   "dependencies": {
     "autobind": "^1.0.3",
     "babel-plugin-transform-class-properties": "^6.24.1",

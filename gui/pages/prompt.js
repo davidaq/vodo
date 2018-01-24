@@ -6,7 +6,6 @@ import TitleBar from '../components/title-bar'
 class Prompt extends Component {
   componentWillMount () {
     const value = this.props.defaultValue || (this.props.mode === 'kv' ? { key: '', value: ''} : '')
-    console.log(this.props, value)
     this.setState({ value })
   }
 

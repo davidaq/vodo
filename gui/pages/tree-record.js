@@ -14,7 +14,7 @@ const recordTree = {
 const recordMap = {}
 const recordEv = new EventEmitter()
 
-serviceEv.addEventListener('begin' (event) => {
+eventBus.on('begin' (event) => {
   const [ data ] = JSON.parse(event.data)
   data.status = 'requesting'
   recordList.push(data)

@@ -5,7 +5,7 @@ import { open as openConfig } from './config'
 import Record from './record'
 import { openFile as openDetail } from './record-detail'
 import Rules from './Rules'
-import { fork } from 'child_process'
+import { prompt } from './prompt'
 
 @requireWindow
 @autobind
@@ -16,9 +16,23 @@ class Main extends React.Component {
       tabs: [
         '抓包记录',
         '转发规则'
-      ]
+      ],
+      connected: eventBus.connnected
     })
     this.context.nativeWindow.setMinimumSize(700, 350)
+    eventBus.on('connection', this.onConnectedChange)
+    eventBus.on('service:store', this.onConnectedChange)
+  }
+
+  componentWillUnmount () {
+    eventBus.removeListener('connection', this.onConnectedChange)
+    eventBus.removeListener('service:store', this.onConnectedChange)
+  }
+
+  onConnectedChange () {
+    this.setState({
+      connected: eventBus.connected
+    })
   }
 
   onSwitchTab (index) {
@@ -31,6 +45,14 @@ class Main extends React.Component {
 
   onOpenDetail () {
     this.context.window.chooseFile(openDetail)
+  }
+
+  onChangeAddr () {
+    const port = serviceAddr.split(':').pop()
+    prompt({ title: '修改代理地址', defaultValue: port })
+    .then(val => {
+      eventBus.emit('change-service', val)
+    })
   }
 
   @CSS({
@@ -96,6 +118,14 @@ class Main extends React.Component {
         '&:hover': {
           background: 'rgba(255, 255, 255, 0.15)',
         }
+      },
+      '.tip': {
+        color: '#888',
+        cursor: 'pointer',
+        '&:hover': {
+          color: '#CCC',
+          textDecoration: 'underline'
+        }
       }
     },
     '.bottom': {
@@ -138,6 +168,14 @@ class Main extends React.Component {
                 ))}
               </div>
               <div className="extra">
+                {this.state.connected ? (
+                  <span className="tip" onClick={this.onChangeAddr}>代理已启动 - {eventBus.store.addr} : {eventBus.store.config.port}</span>
+                ) : eventBus.hasServiceProcess ? (
+                  <span className="tip" onClick={this.onChangeAddr}>正在启动代理服务器</span>
+                ) : (
+                  <span className="tip" onClick={this.onChangeAddr}>代理未启动，点击这里改变端口</span>
+                )}
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 <a className="fa fa-folder-open-o" onClick={this.onOpenDetail} title="打开请求记录"></a>
                 <a className="fa fa-cog" onClick={this.onOpenConfig} title="设置"></a>
               </div>
@@ -162,22 +200,15 @@ class Main extends React.Component {
 export default Main
 
 export const open = () => {
-  const cp = fork(require.resolve('../../index'), {
-    env: { HEADLESS: '1' }
-  })
-  cp.once('message', () => {
-    const options = {
-      width: 800,
-      height: 550,
-    }
-    openUI('main', options, (win) => {
-      win.on('close', () => {
-        win.close(true)
-        nw.App.quit()
-      })
-    }, openDetail)
-  })
-  cp.on('close', () => {
-    nw.App.quit()
-  })
+  const options = {
+    width: 800,
+    height: 550,
+  }
+  openUI('main', options, (win) => {
+    win.on('close', () => {
+      win.close(true)
+      nw.App.quit()
+    })
+  }, openDetail)
 }
+

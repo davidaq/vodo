@@ -169,9 +169,11 @@ class Config extends Component {
         <div className="wrap">
           <div className="section">
             <div className="title">基本设置</div>
-            <Field label="代理端口" tip="需要重启 Vodo 才可生效">
-              <Input type="number" min="1" {...bindConfig('port')} />
-            </Field>
+            {false ? (
+              <Field label="代理端口" tip="需要重启 Vodo 才可生效">
+                <Input type="number" min="1" {...bindConfig('port')} />
+              </Field>
+            ) : null}
             <Field label="请求记录容量" tip={<span>MB <Tip>抓包记录是存在内存里的，超出设置的容量会开始丢弃最早的记录</Tip></span>}>
               <Input type="number" min="10" {...bindConfig('allRequestLimit')} />
             </Field>
