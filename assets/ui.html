@@ -33,6 +33,10 @@
           fileInput.type = 'file'
           if (saveFilename) {
             fileInput.nwsaveas = saveFilename
+            const ext = saveFilename.split('.').pop()
+            if (ext && ext.length <= 5) {
+              fileInput.accept = `.${ext}`
+            }
           }
           Object.assign(fileInput.style, {
             position: 'absolute',
