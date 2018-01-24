@@ -12,7 +12,7 @@ import { prompt } from './prompt'
 class Main extends React.Component {
   componentWillMount () {
     this.setState({
-      curTab: 1,
+      curTab: 0,
       tabs: [
         '抓包记录',
         '转发规则'
