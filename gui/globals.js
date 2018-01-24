@@ -148,7 +148,7 @@ eventBus.on('change-service', (addr) => {
       setTimeout(() => {
         global.eventBus.hasServiceProcess = true
         global.eventBus.emit('connection')
-      }, 100)
+      }, 200)
     }
   }
 })
