@@ -18,6 +18,8 @@
           window.mouseX = e.pageX
           window.mouseY = e.pageY
         }
+        window.popup = (menu, x, y) => menu.popup(x, y)
+        window.createMenu = () => new nw.Menu()
 
         let fileInput
         window.chooseFile = (saveFilename, cb) => {

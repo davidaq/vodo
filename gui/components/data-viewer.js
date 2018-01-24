@@ -20,7 +20,7 @@ class DataViewer extends Component {
       nameEl.addEventListener('contextmenu', ev => {
         ev.preventDefault()
         ev.stopPropagation()
-        const menu = new nw.Menu()
+        const menu = this.context.window.createMenu()
         if (depth > 0) {
           menu.append(new nw.MenuItem({
             label: '复制属性路径',
@@ -41,9 +41,13 @@ class DataViewer extends Component {
             nw.Clipboard.get().set(JSON.stringify(data, false, '  '), 'text')
           }
         }))
-        const { mouseX, mouseY } = this.context.window
-        const { x, y } = this.context.nativeWindow
-        menu.popup(mouseX + x, mouseY + y)
+        let { mouseX, mouseY } = this.context.window
+        if (isWindows) {
+          const { x, y } = this.context.nativeWindow
+          mouseX += x
+          mouseY += y
+        }
+        menu.popup(mouseX, mouseY)
       })
     }
   }
