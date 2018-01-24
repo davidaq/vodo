@@ -24,7 +24,7 @@ class Context extends Component {
         overflow: 'hidden',
         WebkitUserSelect: 'none',
         background: Colors.mainBG,
-        fontFamily: '微软雅黑'
+        fontFamily: 'Heiti SC, 微软雅黑'
       },
       '*': {
         cursor: 'default'
