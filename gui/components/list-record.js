@@ -56,7 +56,15 @@ class ListRecord extends Component {
               {selected === record.requestID ? (
                 <ScrollToMe />
               ): null}
-              {record.protocol}//{record.hostname}:{record.port}{record.pathname}
+              {record.protocol === 'file:' ? (
+                <span>
+                  本地文件 - {record.pathname}
+                </span>
+              ) : (
+                <span>
+                  {record.protocol}//{record.hostname}:{record.port}{record.pathname}
+                </span>
+              )}
             </div>
           </div>
         ))}

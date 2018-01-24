@@ -30,7 +30,14 @@ eventBus.on('service:begin', ([data]) => {
   recordList.push(data)
   recordMap[data.requestID] = data
   const path = data.pathname.split(/\/+/)
-  path[0] = `${data.protocol}//${data.hostname}:${data.port}`
+  if (data.protocol === 'file:') {
+    if (path[0]) {
+      path.unshift('')
+    }
+    path[0] = '本地文件'
+  } else {
+    path[0] = `${data.protocol}//${data.hostname}:${data.port}`
+  }
   const leaf = path.pop() || '/'
   let curNode = recordTree
   path.forEach(part => {
@@ -194,6 +201,7 @@ class Record extends Component {
         padding: '5px 0',
         background: '#F7F7F7',
         position: 'relative',
+        zIndex: '1',
         '.clear-btn': {
           position: 'absolute',
           right: 5,

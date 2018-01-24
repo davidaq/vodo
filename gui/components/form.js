@@ -7,7 +7,7 @@ export const Field = CSS({
     marginTop: 5,
     '.label': {
       flex: 'none',
-      width: 100,
+      width: 70,
       fontSize: 12,
       lineHeight: 30,
       color: '#555'
@@ -27,8 +27,8 @@ export const Field = CSS({
   }
 })((props) => {
   const style = {}
-  if (props.width) {
-    let width = props.width
+  if (props.labelWidth) {
+    let width = props.labelWidth
     if (typeof width === 'number') {
       width += 'px'
     }
@@ -158,7 +158,8 @@ export const Checkbox = uniformInput(
       color: '#555',
       '.icon': {
         display: 'inline-block',
-        width: 14
+        width: 14,
+        textAlign: 'left'
       },
     }
   })(({ value, className, children, onChange, onClick, ...props}) => (

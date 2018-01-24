@@ -6,18 +6,14 @@
     "recordRequest": false,
     "ignoreHTTPS": true,
     "useReplaceRules": true,
-    "useInjectHeaders": true,
     "useHtmlInjectScript": true,
     "simulateSlowNetwork": false,
     "simulateUnstableNetwork": false
   },
   "htmlInjectScript": "console.log('Hello Vodo')",
-  "injectRequestHeaders": {
-  },
-  "injectResponseHeaders": {
-  },
   "replaceRules": [
     {
+      "enabled": true,
       "from": {
         "protocol": "http:",
         "domain": "davidaq.com",
@@ -29,8 +25,12 @@
         "protocol": "file:",
         "domain": "",
         "port": "",
-        "path": "/Users/anqin/Documents/workspace/vodo/global.js",
+        "path": "/Users/anqin/Documents/workspace/vodo/index.js",
         "exact": false
+      },
+      "injectRequestHeaders": {
+      },
+      "injectResponseHeaders": {
       }
     }
   ]

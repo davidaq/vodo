@@ -117,7 +117,7 @@ class Config extends Component {
       '.wrap': {
         flex: 'auto',
         padding: 5,
-        overflow: 'auto'
+        overflow: 'hidden'
       }
     },
     '.header': {
@@ -170,79 +170,83 @@ class Config extends Component {
           <div className="section">
             <div className="title">基本设置</div>
             {false ? (
-              <Field label="代理端口" tip="需要重启 Vodo 才可生效">
+              <Field labelWidth={100} label="代理端口" tip="需要重启 Vodo 才可生效">
                 <Input type="number" min="1" {...bindConfig('port')} />
               </Field>
             ) : null}
-            <Field label="请求记录容量" tip={<span>MB <Tip>抓包记录是存在内存里的，超出设置的容量会开始丢弃最早的记录</Tip></span>}>
-              <Input type="number" min="10" {...bindConfig('allRequestLimit')} />
-            </Field>
-            <Field label="单请求上限" tip={<span>MB <Tip>如果某个请求的传输内容超过设置的大小，该请求只会记录最基本的信息</Tip></span>}>
+            <Field labelWidth={100} label="请求大小上限" tip={<span>MB <Tip>如果某个请求的传输内容超过设置的大小，该请求只会记录最基本的信息</Tip></span>}>
               <Input type="number" min="1" {...bindConfig('singleRequestLimit')} />
+            </Field>
+            <Field labelWidth={100} label="总记录容量" tip={<span>MB <Tip>抓包记录是存在内存里的，超出设置的容量会开始丢弃最早的记录</Tip></span>}>
+              <Input type="number" min="10" {...bindConfig('allRequestLimit')} />
             </Field>
           </div>
           <div className="section">
             <div className="title">开关</div>
             <Checkbox {...bindConfig('recordRequest')}>记录请求</Checkbox>
-            <Checkbox {...bindConfig('useHtmlInjectScript')}>注入JS脚本</Checkbox>
+            <Checkbox {...bindConfig('simulateUnstableNetwork')}>模拟不稳定网络</Checkbox>
             <Checkbox {...bindConfig('simulateSlowNetwork')}>模拟慢速网速</Checkbox>
             <Checkbox {...bindConfig('useReplaceRules')}>应用转发规则</Checkbox>
-            <Checkbox {...bindConfig('useInjectHeaders')}>注入请求/响应头</Checkbox>
-            <Checkbox {...bindConfig('simulateUnstableNetwork')}>模拟不稳定网络</Checkbox>
+            {null && <Checkbox {...bindConfig('useInjectHeaders')}>注入请求/响应头</Checkbox>}
+            <Checkbox {...bindConfig('useHtmlInjectScript')}>注入JS脚本</Checkbox>
             <Checkbox {...bindConfig('ignoreHTTPS')}>忽略HTTPS</Checkbox>
           </div>
           <div className="section">
             <div className="title">注入JS脚本</div>
-            <Textarea defaultValue={store.htmlInjectScript} onChange={val => this.onSetVal({ htmlInjectScript: val })} rows="5"></Textarea>
+            <Textarea defaultValue={store.htmlInjectScript} onChange={val => this.onSetVal({ htmlInjectScript: val })} rows="6"></Textarea>
           </div>
-          <div className="section">
-            <div className="title">注入请求头</div>
-            {Object.keys(store.injectRequestHeaders).map(key => {
-              const value = store.injectRequestHeaders[key]
-              return (
-                <div className="header" key={key}>
-                  <div className="kv">
-                    <div className="key" title={key}>
-                      {key}
+          {null && (
+            <div className="section">
+              <div className="title">注入请求头</div>
+              {Object.keys(store.injectRequestHeaders).map(key => {
+                const value = store.injectRequestHeaders[key]
+                return (
+                  <div className="header" key={key}>
+                    <div className="kv">
+                      <div className="key" title={key}>
+                        {key}
+                      </div>
+                      <div className="colon" />
+                      <div className="value" title={value}>
+                        {value}
+                      </div>
                     </div>
-                    <div className="colon" />
-                    <div className="value" title={value}>
-                      {value}
-                    </div>
-                  </div>
-                  <div className="control">
-                    <Button onClick={() => this.onEditHeader('injectRequestHeaders', key, value)}>编辑</Button>
-                    <Button onClick={() => this.onRemoveHeader('injectRequestHeaders', key)} style={{ backgroundColor: '#D33' }}>删除</Button>
-                  </div>
-                </div>
-              )
-            })}
-            <Button onClick={() => this.onAddHeader('injectRequestHeaders')}>添加</Button>
-          </div>
-          <div className="section">
-            <div className="title">注入响应头</div>
-            {Object.keys(store.injectResponseHeaders).map(key => {
-              const value = store.injectResponseHeaders[key]
-              return (
-                <div className="header" key={key}>
-                  <div className="kv">
-                    <div className="key" title={key}>
-                      {key}
-                    </div>
-                    <div className="colon" />
-                    <div className="value" title={value}>
-                      {value}
+                    <div className="control">
+                      <Button onClick={() => this.onEditHeader('injectRequestHeaders', key, value)}>编辑</Button>
+                      <Button onClick={() => this.onRemoveHeader('injectRequestHeaders', key)} style={{ backgroundColor: '#D33' }}>删除</Button>
                     </div>
                   </div>
-                  <div className="control">
-                    <Button onClick={() => this.onEditHeader('injectResponseHeaders', key, value)}>编辑</Button>
-                    <Button onClick={() => this.onRemoveHeader('injectResponseHeaders', key)} style={{ backgroundColor: '#D33' }}>删除</Button>
+                )
+              })}
+              <Button onClick={() => this.onAddHeader('injectRequestHeaders')}>添加</Button>
+            </div>
+          )}
+          {null && (
+            <div className="section">
+              <div className="title">注入响应头</div>
+              {Object.keys(store.injectResponseHeaders).map(key => {
+                const value = store.injectResponseHeaders[key]
+                return (
+                  <div className="header" key={key}>
+                    <div className="kv">
+                      <div className="key" title={key}>
+                        {key}
+                      </div>
+                      <div className="colon" />
+                      <div className="value" title={value}>
+                        {value}
+                      </div>
+                    </div>
+                    <div className="control">
+                      <Button onClick={() => this.onEditHeader('injectResponseHeaders', key, value)}>编辑</Button>
+                      <Button onClick={() => this.onRemoveHeader('injectResponseHeaders', key)} style={{ backgroundColor: '#D33' }}>删除</Button>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-            <Button onClick={() => this.onAddHeader('injectResponseHeaders')}>添加</Button>
-          </div>
+                )
+              })}
+              <Button onClick={() => this.onAddHeader('injectResponseHeaders')}>添加</Button>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -260,7 +264,7 @@ export const open = () => {
   } else {
     const options = {
       width: 500,
-      height: 400,
+      height: 390,
       resizable: false
     }
     openedWin = new Promise(resolve => {

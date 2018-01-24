@@ -78,7 +78,7 @@ const connAlive = () => {
     connDieTimeout = null
     global.eventBus.connected = false
     global.eventBus.emit('connection')
-  }, 6000)
+  }, 6000).unref()
 }
 
 const connectService = () => {
@@ -116,7 +116,7 @@ const startService = () => {
       global.eventBus.emit('connection')
       cp.removeListener('message', onMessage)
       global.serviceAddr = `http://127.0.0.1:${msg.port}`
-      setTimeout(connectService, 2000)
+      setTimeout(connectService, 2000).unref()
     }
   })
   const startTime = Date.now()
@@ -148,8 +148,14 @@ eventBus.on('change-service', (addr) => {
       setTimeout(() => {
         global.eventBus.hasServiceProcess = true
         global.eventBus.emit('connection')
-      }, 200)
+      }, 200).unref()
     }
+  }
+})
+
+eventBus.on('quit', () => {
+  if (serviceProcess) {
+    serviceProcess.kill()
   }
 })
 

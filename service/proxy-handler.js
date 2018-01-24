@@ -17,6 +17,9 @@ const forbidenInjectHeaderkeys = {
 function resolveHeaders (headers, rawHeaders, injectHeaders) {
   const outHeaders = {}
   const renameHeaders = {}
+  Object.keys(headers).forEach(key => {
+    renameHeaders[key.toLowerCase()] = key
+  })
   if (rawHeaders) {
     rawHeaders.forEach((key, i) => {
       if (i % 2 === 0) {
@@ -33,7 +36,7 @@ function resolveHeaders (headers, rawHeaders, injectHeaders) {
   Object.keys(headers).forEach(key => {
     outHeaders[key.toLowerCase()] = headers[key]
   })
-  if (Store.config.useInjectHeaders && injectHeaders) {
+  if (injectHeaders) {
     Object.keys(injectHeaders).forEach(key => {
       const loKey = key.toLowerCase()
       if (loKey !== key) {
@@ -87,7 +90,7 @@ export const handleProxy = (req, res) => {
   }
   delete req.headers['x-vodo-no-record']
   options.port = `${options.port}`
-  options.headers = resolveHeaders(req.headers, req.rawHeaders, Store.injectRequestHeaders)
+  options.headers = resolveHeaders(req.headers, req.rawHeaders, options.injectRequestHeaders)
   options.method = req.method
   if (options.protocol === 'file:') {
     serveStatic(options, req, res)
@@ -155,7 +158,7 @@ export const handleProxy = (req, res) => {
       delete proxyRes.headers['content-length']
       delete proxyRes.headers['content-security-policy']
     }
-    const responseHeaders = resolveHeaders(proxyRes.headers, proxyRes.rawHeaders, Store.injectResponseHeaders)
+    const responseHeaders = resolveHeaders(proxyRes.headers, proxyRes.rawHeaders, options.injectResponseHeaders)
     const responseTime = Date.now()
     if (options.requestID) {
       IPC.request('record-request', options.requestID, {
@@ -288,6 +291,19 @@ const handleReplace = (options) => {
   }
   for (let i = 0; i < Store.replaceRules.length; i++) {
     const rule = Store.replaceRules[i]
+    if (!rule.enabled) {
+      continue
+    }
+    if (!rule.from.protocol || !rule.from.domain || !rule.from.port) {
+      continue
+    }
+    if (rule.to.protocol === 'file:') {
+      if (!rule.to.path) {
+        continue
+      }
+    } else if (!rule.to.protocol || !rule.to.domain || !rule.to.port) {
+      continue
+    }
     if (
       rule.from.protocol === options.protocol &&
       rule.from.domain === options.hostname &&
@@ -306,10 +322,13 @@ const handleReplace = (options) => {
         options.hostname = rule.to.domain
         options.host = rule.to.domain
         options.port = rule.to.port
+        options.injectRequestHeaders = rule.requestHeaders
+        options.injectResponseHeaders = rule.responseHeaders
         if (rule.to.path) {
+          const oPath = options.pathname
           options.pathname = rule.to.path
-          if (rule.from.path && rule.to.exact && !rule.from.exact) {
-            options.pathname += options.pathname.substr(rule.from.path.length)
+          if (rule.from.path && !rule.to.exact && !rule.from.exact) {
+            options.pathname += oPath.substr(rule.from.path.length)
           }
           options.path = options.pathname
           if (options.search) {
@@ -335,7 +354,7 @@ const serveStatic = (options, req, res) => {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Credentials': 'true',
     'Content-Encoding': clientAllowGzip ? 'gzip' : 'identity'
-  }, null, Store.injectResponseHeaders)
+  }, null, options.injectResponseHeaders)
   if (req.method.toLowerCase() === 'options') {
     res.writeHead(200, headers)
     res.end()
@@ -360,6 +379,7 @@ const serveStatic = (options, req, res) => {
   }
   stat(options.pathname, (err, info) => {
     if (err || !info.isFile()) {
+      delete headers['Content-Encoding']
       res.writeHead(404, headers)
       res.end('File not found')
       if (options.requestID) {
@@ -378,12 +398,13 @@ const serveStatic = (options, req, res) => {
           responseTime,
           responseElapse: responseTime - startTime,
           requestBodySize: 0,
+          requestBody: '',
           ...options
         })
         IPC.emit('caught-request-respond', options.requestID)
       }
       res.writeHead(200, headers)
-      const reader = createReadStream(options.path)
+      const reader = createReadStream(options.pathname)
       let encodedRes = reader
       if (clientAllowGzip) {
         encodedRes = createGzip({ flush: Z_SYNC_FLUSH || constants.Z_SYNC_FLUSH })
@@ -397,6 +418,7 @@ const serveStatic = (options, req, res) => {
         if (options.requestID) {
           IPC.request('record-request', options.requestID, {
             responseBodySize: info.size,
+            responseBody: new Buffer(`<本地文件: ${options.pathname}>`).toString('binary'),
             finishTime,
             finishElapse
           })

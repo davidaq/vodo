@@ -12,7 +12,7 @@ import { prompt } from './prompt'
 class Main extends React.Component {
   componentWillMount () {
     this.setState({
-      curTab: 0,
+      curTab: 1,
       tabs: [
         '抓包记录',
         '转发规则'
@@ -49,7 +49,7 @@ class Main extends React.Component {
 
   onChangeAddr () {
     const port = serviceAddr.split(':').pop()
-    prompt({ title: '修改代理地址', defaultValue: port })
+    prompt({ title: '修改代理地址', defaultValue: port }, { width: 150 })
     .then(val => {
       eventBus.emit('change-service', val)
     })
@@ -206,6 +206,7 @@ export const open = () => {
   }
   openUI('main', options, (win) => {
     win.on('close', () => {
+      eventBus.emit('quit')
       win.close(true)
       nw.App.quit()
     })

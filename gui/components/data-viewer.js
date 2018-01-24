@@ -112,7 +112,7 @@ class DataViewer extends Component {
           </div>
         ) : (
           <div className="name root">
-            根
+            数据结构
           </div>
         )}
         <div className="vary">:</div>
