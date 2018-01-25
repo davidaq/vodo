@@ -41,15 +41,16 @@ Promise.all([
       fetch(bundleUrl)
         .then(r => r.arrayBuffer())
         .then(r => unzip()(new Buffer(new Uint8Array(r)))),
-      remove(join(basedir, 'next'))
-      .then(() => copy(join(basedir, 'app'), join(basedir, 'next', 'app')))
-      .then(() => copy(join(basedir, 'node_modules'), join(basedir, 'next', 'node_modules')))
-      .then(() => copy(join(basedir, 'package.json'), join(basedir, 'next', 'package.json')))
+       remove(join(basedir, 'next')).catch(err => null)
+       .then(() => copy(join(basedir, 'app'), join(basedir, 'next', 'app')))
+       .then(() => copy(join(basedir, 'node_modules'), join(basedir, 'next', 'node_modules')))
+       .then(() => copy(join(basedir, 'package.json'), join(basedir, 'next', 'package.json')))
     ])
     .then(([files]) => {
       return Promise.all(files.map(file => {
         if (file.type === 'file') {
-          const fpath = resolve(basedir, 'next', file.path
+          const fpath = resolve(basedir, 'next', file.path)
+          console.log(fpath)
           return ensureDir(dirname(fpath))
           .then(() => writeFile(fpath, new Buffer(file.data)))
         } else {
@@ -74,7 +75,11 @@ Promise.all([
 const ensured = {}
 function ensureDir (dir) {
   if (!ensured[dir]) {
-    ensured[dir] = ensureDir(dirname(dir))
+    const parent = dirname(dir)
+    const ensureParent = dir === parent
+      ? Promise.resolve()
+      : ensureDir(dirname(dir))
+    ensured[dir] = ensureParent
     .then(new Promise(accept => {
       mkdir(dir, () => accept())
     }))
@@ -83,17 +88,23 @@ function ensureDir (dir) {
 }
 
 function walk (entry, opt) {
-  return new Promise(accept => {
+  return new Promise((accept, reject) => {
     stat(entry, (err, info) => {
       if (err) {
-        accept()
+        reject(err)
       } else if (info.isDirectory()) {
         Promise.resolve(opt.onDir && opt.onDir(entry))
         .then(() => {
-          readdir(entry, (list) => {
-            accept(Promise.all(list.map(item => {
-              return walk(join(entry, item), opt)
-            })))
+          readdir(entry, (err, list) => {
+            if (!err) {
+              let ret = Promise.resolve()
+              list.map(item => {
+                ret = ret.then(() => walk(join(entry, item), opt))
+              })
+              accept(ret)
+            } else {
+              reject(err)
+            }
           })
         })
         .then(() => opt.afterDir && opt.afterDir(entry))
@@ -105,16 +116,20 @@ function walk (entry, opt) {
 }
 
 function copy (from, to) {
+  if (/nwjs-builder-phoenix/.test(from)) {
+    return Promise.resolve()
+  }
+  console.log('COPY', from, to)
   return walk(resolve(from), {
     onFile (fromPath) {
       const toPath = resolve(to, relative(from, fromPath))
       return ensureDir(dirname(toPath))
       .then(() => new Promise(accept => {
         readFile(fromPath, (err, content) => {
-          if (err) {
-            accept()
-          } else {
+          if (!err) {
             writeFile(toPath, content, () => accept())
+          } else {
+            reject(err)
           }
         })
       }))

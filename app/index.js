@@ -1,14 +1,20 @@
 require('babel-register')
 require('./globals')
+const { fork } = require('child_process')
 
-if (typeof nw !== 'undefined' && !process.env.SERVICE && !process.env.HEADLESS) {
+const { UPDATER, SERVICE, HEADLESS } = process.env
+
+if (UPDATER) {
+  require('./update')
+} else if (typeof nw !== 'undefined' && !SERVICE && !HEADLESS) {
+  //fork('./update', { env: { UPDATER: 1 } })
   require('./update')
   require('./gui')
 } else {
-  console.error('Start worker service:', process.env.SERVICE || 'index')
+  console.error('Start worker service:', SERVICE || 'index')
   let modName = './service'
-  if (process.env.SERVICE) {
-    modName += '/' + process.env.SERVICE
+  if (SERVICE) {
+    modName += '/' + SERVICE
   }
   require(modName).main()
 }
