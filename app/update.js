@@ -3,6 +3,7 @@ import { resolve, relative, join, dirname } from 'path'
 import unzip from 'decompress-unzip'
 import { fork } from 'child_process'
 import fetch from 'node-fetch'
+import { ncp } from 'ncp'
 
 const basedir = join(__dirname, '..')
 
@@ -47,15 +48,34 @@ export const prepare = () => {
          remove(join(basedir, 'next')).catch(err => null)
       ])
       .then(([files]) => {
-        return Promise.all(files.map(file => {
-          if (file.type === 'file') {
-            const fpath = resolve(basedir, 'next', file.path)
-            return ensureDir(dirname(fpath))
-            .then(() => writeFile(fpath, file.data, err => null))
-          } else {
-            return Promise.resolve()
-          }
-        }))
+        let ret = Promise.resolve()
+        files.forEach(file => {
+          ret = ret.then(() => {
+            if (file.type === 'file') {
+              const fpath = resolve(basedir, 'next', file.path)
+              return ensureDir(dirname(fpath))
+              .then(() => new Promise((accept, reject) => {
+                writeFile(fpath, file.data, err => err ? reject(err) : accept())
+              }))
+            }
+          })
+        })
+        return ret
+      })
+      .then(() => {
+        const copyIfNotExist = (item) => {
+          return exists(join(basedir, 'next', item))
+          .then((ok) => {
+            if (!ok) {
+              return copy(join(basedir, item), join(basedir, 'next', item))
+            }
+          })
+        }
+        return Promise.all([
+          'app',
+          'node_modules',
+          'package.json'
+        ].map(copyIfNotExist))
       })
       .then(() => {
         const ver = version.name.replace(/^patch-/, '')
@@ -77,9 +97,7 @@ export const startup = () => {
   })
   .then((ready) => {
     if (ready) {
-      return remove(join(basedir, 'legend'))
-      .catch(err => null)
-      .then(() => move(join(basedir, 'old'), join(basedir, 'legend')))
+      return remove(join(basedir, 'old'))
       .catch(err => null)
       .then(() => ensureDir(resolve(basedir, 'old')))
       .then(() => move(join(basedir, 'app'), join(basedir, 'old', 'app')))
@@ -89,7 +107,6 @@ export const startup = () => {
       .catch(err => null)
       .then(() => move(join(basedir, 'next', 'app'), join(basedir, 'app')))
       .then(() => move(join(basedir, 'next', 'node_modules'), join(basedir, 'node_modules')))
-      .then(() => move(join(basedir, 'next', 'package.json'), join(basedir, 'package.json')))
       .then(() => move(join(basedir, 'next', 'package.json'), join(basedir, 'package.json')))
       .then(() => move(join(basedir, 'next', 'version.txt'), join(basedir, 'version.txt')))
     }
@@ -111,14 +128,13 @@ function ensureDir (dir, resolved) {
   if (!ensured[dir]) {
     ensured[dir] = ensureDir(dirname(dir), true)
     .then(new Promise((accept, reject) => {
-      console.log(dir)
       mkdir(dir, (err) => {
         if (err && err.code !== 'EEXIST') {
           console.error(err)
           process.exit(1)
           reject(err)
         } else {
-          accept()
+          setTimeout(accept, 30)
         }
       })
     }))
@@ -154,21 +170,15 @@ function walk (entry, opt) {
   })
 }
 
+ncp.limit = 16
+const copyOptions = {
+  stopOnErr: true
+}
 function copy (from, to) {
-  return walk(resolve(from), {
-    onFile (fromPath) {
-      const toPath = resolve(to, relative(from, fromPath))
-      return ensureDir(dirname(toPath))
-      .then(() => new Promise(accept => {
-        readFile(fromPath, (err, content) => {
-          if (!err) {
-            writeFile(toPath, content, () => accept())
-          } else {
-            reject(err)
-          }
-        })
-      }))
-    }
+  from = resolve(from)
+  to = resolve(to)
+  return new Promise((accept, reject) => {
+    ncp(from, to, copyOptions, err => err ? reject(err) : accept())
   })
 }
 
@@ -190,6 +200,14 @@ function remove (fpath) {
 function move (from, to) {
   return new Promise((accept, reject) => {
     rename(from, to, (err) => err ? reject(err) : accept(err))
+  })
+}
+
+function exists (fpath) {
+  return new Promise((accept) => {
+    stat(fpath, (err, info) => {
+      accept(!err && info)
+    })
   })
 }
 
