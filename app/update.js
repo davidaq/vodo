@@ -2,10 +2,14 @@ import { writeFile, readFile, readdir, mkdir, rename, stat, unlink } from 'fs'
 import { resolve, relative, join, dirname } from 'path'
 import unzip from 'decompress-unzip'
 import { fork } from 'child_process'
-import fetch from 'node-fetch'
 import { ncp } from 'ncp'
+import rimraf from 'rimraf'
 
 const basedir = join(__dirname, '..')
+
+if (typeof fetch === 'undefined') {
+  global.fetch = require('node-fetch')
+}
 
 export const prepare = () => {
   Promise.all([
@@ -43,7 +47,7 @@ export const prepare = () => {
       const bundleUrl = match[1]
       Promise.all([
         fetch(bundleUrl)
-          .then(r => r.buffer())
+          .then(r => r.buffer ? r.buffer() : r.arrayBuffer().then(r => new Buffer(new Uint8Array(r))))
           .then(r => unzip()(r)),
          remove(join(basedir, 'next')).catch(err => null)
       ])
@@ -87,7 +91,7 @@ export const prepare = () => {
     }
     setTimeout(prepare, 300000)
   })
-  .catch(err => console.error(err))
+  .catch(err => console.error(err.stack))
 }
 
 export const startup = () => {
@@ -113,7 +117,8 @@ export const startup = () => {
     }
   })
   .then(() => {
-    fork(require.resolve('./index'), { env: { UPDATER: 1 } })
+    //fork(require.resolve('./index'), { env: { UPDATER: 1 } })
+    prepare()
   })
 }
 
@@ -131,8 +136,6 @@ function ensureDir (dir, resolved) {
     .then(new Promise((accept, reject) => {
       mkdir(dir, (err) => {
         if (err && err.code !== 'EEXIST') {
-          console.error(err)
-          process.exit(1)
           reject(err)
         } else {
           setTimeout(accept, 100)
@@ -183,18 +186,12 @@ function copy (from, to) {
   })
 }
 
+let rmCounter = 0
 function remove (fpath) {
-  return walk(resolve(fpath), {
-    onFile (entry) {
-      return new Promise(accept => {
-        unlink(entry, () => accept())
-      })
-    },
-    afterDir (entry) {
-      return new Promise(accept => {
-        unlink(entry, () => accept())
-      })
-    }
+  const tmp = `${fpath}.remove.${Date.now()}.${rmCounter++}`
+  return move(fpath, tmp)
+  .then(() => {
+    rimraf(tmp, () => null)
   })
 }
 

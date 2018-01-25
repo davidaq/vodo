@@ -209,6 +209,9 @@ export const open = () => {
       eventBus.emit('quit')
       win.close(true)
       nw.App.quit()
+      setTimeout(() => {
+        process.exit()
+      }, 2000)
     })
   }, openDetail)
 }
