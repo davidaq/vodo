@@ -45,7 +45,7 @@ export const prepare = () => {
         continue
       }
       const bundleUrl = match[1]
-      Promise.all([
+      return Promise.all([
         fetch(bundleUrl)
           .then(r => r.buffer ? r.buffer() : r.arrayBuffer().then(r => new Buffer(new Uint8Array(r))))
           .then(r => unzip()(r)),
@@ -87,7 +87,6 @@ export const prepare = () => {
           writeFile(join(basedir, 'next', 'version.txt'), ver, () => accept())
         })
       })
-      return
     }
     setTimeout(prepare, 300000)
   })
@@ -123,7 +122,7 @@ export const startup = () => {
 }
 
 
-const ensured = {}
+let ensured = {}
 function ensureDir (dir, resolved) {
   if (!resolved) {
     dir = resolve(dir)
@@ -133,45 +132,17 @@ function ensureDir (dir, resolved) {
   }
   if (!ensured[dir]) {
     ensured[dir] = ensureDir(dirname(dir), true)
-    .then(new Promise((accept, reject) => {
+    .then(() => new Promise((accept, reject) => {
       mkdir(dir, (err) => {
         if (err && err.code !== 'EEXIST') {
           reject(err)
         } else {
-          setTimeout(accept, 100)
+          accept()
         }
       })
     }))
   }
   return ensured[dir]
-}
-
-function walk (entry, opt) {
-  return new Promise((accept, reject) => {
-    stat(entry, (err, info) => {
-      if (err) {
-        reject(err)
-      } else if (info.isDirectory()) {
-        Promise.resolve(opt.onDir && opt.onDir(entry))
-        .then(() => {
-          readdir(entry, (err, list) => {
-            if (!err) {
-              let ret = Promise.resolve()
-              list.map(item => {
-                ret = ret.then(() => walk(join(entry, item), opt))
-              })
-              accept(ret)
-            } else {
-              reject(err)
-            }
-          })
-        })
-        .then(() => opt.afterDir && opt.afterDir(entry))
-      } else {
-        accept(opt.onFile && opt.onFile(entry))
-      }
-    })
-  })
 }
 
 ncp.limit = 16
@@ -188,9 +159,11 @@ function copy (from, to) {
 
 let rmCounter = 0
 function remove (fpath) {
+  ensured = {}
   const tmp = `${fpath}.remove.${Date.now()}.${rmCounter++}`
   return move(fpath, tmp)
   .then(() => {
+    ensured = {}
     rimraf(tmp, () => null)
   })
 }
