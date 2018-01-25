@@ -58,7 +58,7 @@ class Rules extends Component {
       comp: RuleEditor,
       defaultValue
     }, {
-      height: 370,
+      height: 390,
       width: 800
     })
     this.promptWin = ret

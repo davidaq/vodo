@@ -80,10 +80,7 @@ class Config extends Component {
       padding: 5,
       marginBottom: 10,
       background: '#FFF',
-      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
-      transition: 'box-shadow 0.3s',
       '&:hover': {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
         '.title': {
           color: '#333'
         }
@@ -93,7 +90,7 @@ class Config extends Component {
         marginBottom: 5,
         color: '#777',
         transition: 'color 0.3s',
-        borderBottom: '1px solid #DDD'
+        borderBottom: '1px solid #EEE'
       },
       '.half': {
         display: 'inline-block',
@@ -104,7 +101,7 @@ class Config extends Component {
       },
       '.checkbox': {
         width: 130,
-        marginBottom: 5
+        marginBottom: 9
       }
     },
     '.config': {
@@ -264,7 +261,7 @@ export const open = () => {
   } else {
     const options = {
       width: 500,
-      height: 390,
+      height: 430,
       resizable: false
     }
     openedWin = new Promise(resolve => {
