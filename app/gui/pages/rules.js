@@ -22,11 +22,6 @@ class Rules extends Component {
         click: this.onAddNew
       }))
       let { mouseX, mouseY } = this.context.window
-      if (isWindows) {
-        const { x, y } = this.context.nativeWindow
-        mouseX += x
-        mouseY += y
-      }
       menu.popup(mouseX, mouseY)
     })
   }
