@@ -18,7 +18,16 @@ export const serve = (req, res) => {
   req.query = parse(req.url)
   switch (req.query.pathname) {
   case '/':
-    html('api-home.html', req, res)
+    console.log('/', req.headers['host'])
+    if (req.headers['host'] && !/vo\.do/.test(req.headers['host'])) {
+      console.log('red')
+      res.writeHead(302, {
+        'Location': `http://vo.do${req.url}`
+      })
+      res.end()
+    } else {
+      html('api-home.html', req, res)
+    }
     break
   case '/inject.js':
     injectScript(req, res)

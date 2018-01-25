@@ -3,6 +3,7 @@
 !.babelrc
 node_modules/
 dist/
+userdata/
 *.swp
 *.tmp
 package-lock.json
