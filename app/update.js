@@ -2,6 +2,7 @@ import { writeFile, readFile, readdir, mkdir, rename, stat, unlink } from 'fs'
 import { resolve, relative, join, dirname } from 'path'
 import unzip from 'decompress-unzip'
 import { fork } from 'child_process'
+import fetch from 'node-fetch'
 
 const basedir = join(__dirname, '..')
 
@@ -41,8 +42,8 @@ export const prepare = () => {
       const bundleUrl = match[1]
       Promise.all([
         fetch(bundleUrl)
-          .then(r => r.arrayBuffer())
-          .then(r => unzip()(new Buffer(new Uint8Array(r)))),
+          .then(r => r.buffer())
+          .then(r => unzip()(r)),
          remove(join(basedir, 'next')).catch(err => null)
          .then(() => copy(join(basedir, 'app'), join(basedir, 'next', 'app')))
          .then(() => copy(join(basedir, 'node_modules'), join(basedir, 'next', 'node_modules')))
