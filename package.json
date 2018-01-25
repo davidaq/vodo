@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dist": "build --tasks win-x64,mac-x64 --mirror https://npm.taobao.org/mirrors/nwjs/ .",
-    "start": "run --x64 --mirror https://npm.taobao.org/mirrors/nwjs/ ."
+    "start": "DEV=1 run --x64 --mirror https://npm.taobao.org/mirrors/nwjs/ ."
   },
   "author": "",
   "license": "ISC",

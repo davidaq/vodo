@@ -42,8 +42,8 @@ global.requireWindow = (Comp) => {
 global.openUI = (page, options = {}, callback) => {
   const { props = {}, ...winOptions } = options
   winOptions.frame = false
-  winOptions.icon = path.join(__dirname, '../assets/images/logo.png')
-  nw.Window.open('../assets/ui.html', winOptions, (win, ...args) => {
+  const htmlPath = 'app/assets/ui.html'
+  nw.Window.open(htmlPath, winOptions, (win, ...args) => {
     win.window.document.addEventListener('DOMContentLoaded', () => {
       win.window.init(page, win, props)
     })
