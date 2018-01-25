@@ -19,12 +19,12 @@
       "productName": "Vodo",
       "companyName": "Baidu Waimai",
       "copyright": "",
-      "icon": "./assets/images/logo.ico"
+      "icon": "./app/assets/images/logo.ico"
     },
     "mac": {
       "displayName": "Vodo",
       "copyright": "",
-      "icon": "./assets/images/logo.icns",
+      "icon": "./app/assets/images/logo.icns",
       "plistStrings": {
         "CFBundleIdentifier": "com.davidaq.vodo.project.modified",
         "CFBundleDocumentTypes": []
