@@ -45,16 +45,13 @@ export const prepare = () => {
           .then(r => r.buffer())
           .then(r => unzip()(r)),
          remove(join(basedir, 'next')).catch(err => null)
-         .then(() => copy(join(basedir, 'app'), join(basedir, 'next', 'app')))
-         .then(() => copy(join(basedir, 'node_modules'), join(basedir, 'next', 'node_modules')))
-         .then(() => copy(join(basedir, 'package.json'), join(basedir, 'next', 'package.json')))
       ])
       .then(([files]) => {
         return Promise.all(files.map(file => {
           if (file.type === 'file') {
             const fpath = resolve(basedir, 'next', file.path)
             return ensureDir(dirname(fpath))
-            .then(() => writeFile(fpath, new Buffer(file.data)))
+            .then(() => writeFile(fpath, file.data, err => null))
           } else {
             return Promise.resolve()
           }
@@ -84,7 +81,7 @@ export const startup = () => {
       .catch(err => null)
       .then(() => move(join(basedir, 'old'), join(basedir, 'legend')))
       .catch(err => null)
-      .then(() => ensureDir('old'))
+      .then(() => ensureDir(resolve(basedir, 'old')))
       .then(() => move(join(basedir, 'app'), join(basedir, 'old', 'app')))
       .then(() => move(join(basedir, 'node_modules'), join(basedir, 'old', 'node_modules')))
       .then(() => move(join(basedir, 'package.json'), join(basedir, 'old', 'package.json')))
@@ -104,15 +101,26 @@ export const startup = () => {
 
 
 const ensured = {}
-function ensureDir (dir) {
+function ensureDir (dir, resolved) {
+  if (!resolved) {
+    dir = resolve(dir)
+  }
+  if (!dir || dir.split(/[\/\\]+/).length < 3) {
+    return Promise.resolve()
+  }
   if (!ensured[dir]) {
-    const parent = dirname(dir)
-    const ensureParent = dir === parent
-      ? Promise.resolve()
-      : ensureDir(dirname(dir))
-    ensured[dir] = ensureParent
-    .then(new Promise(accept => {
-      mkdir(dir, () => accept())
+    ensured[dir] = ensureDir(dirname(dir), true)
+    .then(new Promise((accept, reject) => {
+      console.log(dir)
+      mkdir(dir, (err) => {
+        if (err && err.code !== 'EEXIST') {
+          console.error(err)
+          process.exit(1)
+          reject(err)
+        } else {
+          accept()
+        }
+      })
     }))
   }
   return ensured[dir]
@@ -147,9 +155,6 @@ function walk (entry, opt) {
 }
 
 function copy (from, to) {
-  if (/nwjs-builder-phoenix/.test(from)) {
-    return Promise.resolve()
-  }
   return walk(resolve(from), {
     onFile (fromPath) {
       const toPath = resolve(to, relative(from, fromPath))
