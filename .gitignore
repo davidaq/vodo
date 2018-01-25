@@ -10,3 +10,4 @@ userdata/
 *.swp
 *.tmp
 package-lock.json
+version.txt
