@@ -16,7 +16,14 @@ export const handleHTTP = (req, res) => {
     res.writeHead(200, { 'access-control-allow-origin': '*' })
     res.end('VODO, IT WORKS')
   } else if (!/^https?:\/\//i.test(req.url)) {
-    serveApi(req, res)
+    if (req.method.toLowerCase() === 'get') {
+      res.writeHead(302, {
+        'Location': `http://vo.do${req.url}`
+      })
+      res.end()
+    } else {
+      serveApi(req, res)
+    }
   } else {
     handleProxy(req, res)
   }
