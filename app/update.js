@@ -116,8 +116,7 @@ export const startup = () => {
     }
   })
   .then(() => {
-    //fork(require.resolve('./index'), { env: { UPDATER: 1 } })
-    prepare()
+    fork(require.resolve('./index'), { env: { UPDATER: 1 } })
   })
 }
 
