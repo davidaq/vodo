@@ -83,8 +83,9 @@ export const prepare = () => {
           writeFile(join(basedir, 'next', 'version.txt'), ver, () => accept())
         })
       })
-      break
+      return
     }
+    setTimeout(prepare, 300000)
   })
   .catch(err => console.error(err))
 }
@@ -134,7 +135,7 @@ function ensureDir (dir, resolved) {
           process.exit(1)
           reject(err)
         } else {
-          setTimeout(accept, 30)
+          setTimeout(accept, 100)
         }
       })
     }))
@@ -186,12 +187,12 @@ function remove (fpath) {
   return walk(resolve(fpath), {
     onFile (entry) {
       return new Promise(accept => {
-        unlink(fpath, () => accept())
+        unlink(entry, () => accept())
       })
     },
     afterDir (entry) {
       return new Promise(accept => {
-        unlink(fpath, () => accept())
+        unlink(entry, () => accept())
       })
     }
   })
