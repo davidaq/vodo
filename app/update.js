@@ -2,20 +2,21 @@ import { writeFile, readFile, readdir, mkdir, rename, stat, unlink } from 'fs'
 import { resolve, relative, join, dirname } from 'path'
 import unzip from 'decompress-unzip'
 
+const basedir = join(__dirname, '..')
+
 Promise.all([
   new Promise(resolve => {
-    readFile(join(__dirname, '..', 'package.json'), (err, content) => {
+    readFile(join(basedir, 'package.json'), (err, content) => {
       const { version } = JSON.parse(content)
       resolve(version)
     })
   }),
   new Promise(resolve => {
-    readFile(join(__dirname, '..', 'version.txt'), (err, content) => {
+    readFile(join(basedir, 'version.txt'), (err, content) => {
       if (err) {
         resolve(null)
       } else {
-        const { version } = JSON.parse(content)
-        resolve(version)
+        resolve(content.toString().trim())
       }
     })
   }),
@@ -36,12 +37,35 @@ Promise.all([
       continue
     }
     const bundleUrl = match[1]
-    fetch(bundleUrl)
-      .then(r => r.arrayBuffer())
-      .then(r => unzip()(new Buffer(new Uint8Array(r))))
-      .then(files => {
-        console.log(files)
+    Promise.all([
+      fetch(bundleUrl)
+        .then(r => r.arrayBuffer())
+        .then(r => unzip()(new Buffer(new Uint8Array(r)))),
+      remove(join(basedir, 'next'))
+      .then(() => copy(join(basedir, 'app'), join(basedir, 'next', 'app')))
+      .then(() => copy(join(basedir, 'node_modules'), join(basedir, 'next', 'node_modules')))
+      .then(() => copy(join(basedir, 'package.json'), join(basedir, 'next', 'package.json')))
+    ])
+    .then(([files]) => {
+      return Promise.all(files.map(file => {
+        if (file.type === 'file') {
+          const fpath = resolve(basedir, 'next', file.path
+          return ensureDir(dirname(fpath))
+          .then(() => writeFile(fpath, new Buffer(file.data)))
+        } else {
+          return Promise.resolve()
+        }
+      }))
+    })
+    .then(() => {
+      const ver = version.name.replace(/^patch-/, '')
+      return new Promise(accept => {
+        writeFile(join(basedir, 'next', 'version.txt'), ver, () => accept())
       })
+    })
+    .then(() => {
+      console.log('ready')
+    })
     break
   }
 })
