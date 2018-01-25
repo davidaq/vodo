@@ -1,5 +1,5 @@
 require('babel-register')
 //require('./globals')
 //require('./gui')
-require('./update')
+require('./update').startup()
 
