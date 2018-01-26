@@ -11,27 +11,5 @@
     "simulateUnstableNetwork": false
   },
   "htmlInjectScript": "console.log('Hello Vodo')",
-  "replaceRules": [
-    {
-      "enabled": true,
-      "from": {
-        "protocol": "http:",
-        "domain": "davidaq.com",
-        "port": "80",
-        "path": "/mock",
-        "exact": false
-      },
-      "to": {
-        "protocol": "file:",
-        "domain": "",
-        "port": "",
-        "path": "/Users/anqin/Documents/workspace/vodo/index.js",
-        "exact": false
-      },
-      "injectRequestHeaders": {
-      },
-      "injectResponseHeaders": {
-      }
-    }
-  ]
+  "replaceRules": []
 }

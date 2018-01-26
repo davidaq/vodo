@@ -11,7 +11,7 @@ global.readAssets = name => {
   return readFileSync(assetsDir(name))
 }
 
-global.userDir = (...args) => join(__dirname, '..', '..', 'userdata', ...args)
+global.userDir = (...args) => join(homedir(), '.vodo', ...args)
 
 global.ID = shortid.generate.bind(shortid)
 

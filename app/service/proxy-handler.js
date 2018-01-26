@@ -18,7 +18,10 @@ function resolveHeaders (headers, rawHeaders, injectHeaders) {
   const outHeaders = {}
   const renameHeaders = {}
   Object.keys(headers).forEach(key => {
-    renameHeaders[key.toLowerCase()] = key
+    const loKey = key.toLowerCase()
+    if (loKey !== key) {
+      renameHeaders[loKey] = key
+    }
   })
   if (rawHeaders) {
     rawHeaders.forEach((key, i) => {
