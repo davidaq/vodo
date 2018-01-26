@@ -152,7 +152,13 @@ class Config extends Component {
   render () {
     const { store } = this.state
     if (!store || !store.config) {
-      return <div />
+      return (
+        <div className="config">
+          <div className="title-bar">
+            <TitleBar title="正在等待代理服务器启动" noMinimize={true} noMaximize={true}></TitleBar>
+          </div>
+        </div>
+      )
     }
     const bindConfig = name => ({
       defaultValue: store.config[name],

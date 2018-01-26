@@ -12,6 +12,9 @@ if (typeof fetch === 'undefined') {
 }
 
 export const prepare = () => {
+  if (process.env.DEV) {
+    return
+  }
   Promise.all([
     new Promise(resolve => {
       readFile(join(basedir, 'package.json'), (err, content) => {
