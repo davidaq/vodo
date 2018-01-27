@@ -37,7 +37,8 @@ const zipFile = new JSZip()
 
 Promise.all([
   addFile('package.json', zipFile),
-  walk('app', zipFile.folder('app'))
+  walk('app', zipFile.folder('app')),
+  walk('node_modules', zipFile.folder('node_modules'))
 ])
 .then(() => {
   console.log('WRITE')
