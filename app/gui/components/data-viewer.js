@@ -1,5 +1,3 @@
-import { findDOMNode } from 'preact-compat'
-
 @requireWindow
 @autobind
 class DataViewer extends Component {
@@ -15,7 +13,7 @@ class DataViewer extends Component {
 
   componentDidMount () {
     const { data, name, depth = 0,  path = '' } = this.props
-    const nameEl = findDOMNode(this).querySelector('.name')
+    const nameEl = this.base.querySelector('.name')
     if (nameEl) {
       nameEl.addEventListener('contextmenu', ev => {
         ev.preventDefault()

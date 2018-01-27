@@ -1,4 +1,3 @@
-import { findDOMNode } from 'preact-compat'
 import DataViewer from './data-viewer'
 import { Tabs } from './form'
 import qs from 'qs'
@@ -37,7 +36,7 @@ class BodyDisplayer extends Component {
   }
 
   onResizeImage () {
-    const $el = findDOMNode(this)
+    const $el = this.base
     const img = $el.querySelector('img')
     const oW = img.naturalWidth || 0
     const oH = img.naturalHeight || 0

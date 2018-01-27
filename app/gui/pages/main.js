@@ -9,7 +9,7 @@ import { prompt } from './prompt'
 
 @requireWindow
 @autobind
-class Main extends React.Component {
+class Main extends Component {
   componentWillMount () {
     this.setState({
       curTab: 0,

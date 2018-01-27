@@ -1,6 +1,5 @@
 import { Checkbox, Button } from '../components/form'
 import RuleEditor from '../components/rule-editor'
-import { findDOMNode } from 'preact-compat'
 import { prompt } from './prompt'
 
 @requireWindow
@@ -12,7 +11,7 @@ class Rules extends Component {
   }
 
   componentDidMount () {
-    const el = findDOMNode(this)
+    const el = this.base
     el.addEventListener('contextmenu', ev => {
       ev.preventDefault()
       ev.stopPropagation()

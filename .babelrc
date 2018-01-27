@@ -1,8 +1,7 @@
 {
   "plugins": [
-    "transform-react-jsx",
     "transform-decorators-legacy",
-    "transform-react-jsx",
+    ["transform-react-jsx", { "pragma": "preactRender" }],
     "transform-es2015-modules-commonjs",
     "transform-class-properties",
     "transform-object-rest-spread",

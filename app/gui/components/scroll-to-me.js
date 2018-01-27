@@ -1,10 +1,8 @@
-import { findDOMNode } from 'preact-compat'
-
 class ScrollToMe extends Component {
   
   componentDidMount () {
     setTimeout(() => {
-      const dom = findDOMNode(this)
+      const dom = this.base
       let scroller = dom
       while (scroller) {
         scroller = scroller.parentElement

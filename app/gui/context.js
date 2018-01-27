@@ -32,7 +32,8 @@ class Context extends Component {
     }
   })
   render () {
-    return this.props.children
+    const { props, Root } = this.props
+    return <Root {...props} />
   }
 }
 

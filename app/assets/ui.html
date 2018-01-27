@@ -62,12 +62,13 @@
           return false
         }
 
-        const { render, createElement: $ } = require('preact-compat')
+        const { render, h } = require('preact')
         const { styleEv } = require('../gui/js-css')
         const { default: Context } = require(`../gui/context`)
         const { default: Root } = require(`../gui/pages/${page}`)
         const rootEl = document.getElementById('APP')
-        render($(Context, { window, nativeWindow }, $(Root, props)), rootEl)
+
+        render(h(Context, { window, nativeWindow, props, Root }), rootEl)
 
         function updateStyle () {
           document.getElementById('APP_STYLE').innerHTML = styleEv.content

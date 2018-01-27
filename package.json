@@ -34,7 +34,6 @@
   },
   "dependencies": {
     "autobind": "^1.0.3",
-    "babel-runtime": "^6.26.0",
     "classnames": "^2.2.5",
     "decompress-unzip": "^4.0.1",
     "deepmerge": "^2.0.1",
@@ -45,7 +44,6 @@
     "node-fetch": "^1.7.3",
     "node-forge": "^0.7.1",
     "preact": "^8.2.7",
-    "preact-compat": "^3.18.0",
     "qs": "^6.5.1",
     "rimraf": "^2.6.2",
     "shortid": "^2.2.8"

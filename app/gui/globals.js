@@ -1,4 +1,5 @@
-import React, { PropTypes } from 'preact-compat'
+import { h as preactRender, Component } from 'preact'
+import PropTypes from './prop-types-shim'
 import autobind from 'autobind'
 import { EventEmitter } from 'events'
 import { platform } from 'os'
@@ -12,9 +13,9 @@ global.isWindows = /^win/i.test(platform())
 
 global.CSS = CSS
 global.Colors = Colors
-global.PropTypes = PropTypes
-global.React = React
-global.Component = React.Component
+global.PropTypes = {}
+global.preactRender = preactRender
+global.Component = Component
 global.autobind = autobind
 
 const oFetch = global.fetch
