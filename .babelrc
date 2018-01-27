@@ -10,9 +10,6 @@
   "highlightCode": false,
   "env": {
     "dist": {
-      "plugins": [
-        ["transform-inline-environment-variables", { "include": ["NODE_ENV"] }]
-      ],
       "presets": [
         ["minify", { "mangle": false }]
       ]

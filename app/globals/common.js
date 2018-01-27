@@ -15,7 +15,7 @@ global.userDir = (...args) => join(homedir(), '.vodo', ...args)
 
 global.ID = shortid.generate.bind(shortid)
 
-if (!process.FORKED) {
+if (!process.env.FORKED) {
   try {
     mkdirSync(userDir())
   } catch (err) {
