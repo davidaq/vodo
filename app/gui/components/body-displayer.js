@@ -1,4 +1,4 @@
-import { findDOMNode } from 'react-dom'
+import { findDOMNode } from 'preact-compat'
 import DataViewer from './data-viewer'
 import { Tabs } from './form'
 import qs from 'qs'

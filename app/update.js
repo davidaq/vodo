@@ -12,7 +12,7 @@ if (typeof fetch === 'undefined') {
 }
 
 export const prepare = () => {
-  if (process.env.DEV) {
+  if (process.env.NODE_ENV === 'dev') {
     return
   }
   Promise.all([

@@ -1,4 +1,3 @@
-import { Component } from 'react'
 import { EventEmitter } from 'events'
 
 let idCounter = 0
@@ -140,13 +139,18 @@ const CSS = (style) => {
         if (Array.isArray(element)) {
           return element.map(markElements)
         } else if (typeof element === 'object') {
-          const sourceProps = element.props || {}
           return {
             ...element,
+            children: markElements(element.children),
             props: {
-              ...sourceProps,
+              ...element.props,
               [`data-c-${CSSModID}`]: '',
-              children: markElements(sourceProps.children)
+              children: element.props && markElements(element.props.children)
+            },
+            attributes: {
+              ...element.attributes,
+              [`data-c-${CSSModID}`]: '',
+              children: element.attributes && markElements(element.attributes.children)
             }
           }
         }
@@ -155,14 +159,14 @@ const CSS = (style) => {
     }
     let oRender
     const nRender = function (...args) {
-      const element = oRender.call(this, ...args)
-      return markElements(element)
+      const result = markElements(oRender.call(this, ...args))
+      return result
     }
     if (name && descriptor) {
       oRender = descriptor.value
       descriptor.value = nRender
     } else {
-      if (target.prototype && target.prototype.isReactComponent) {
+      if (target.prototype && target.prototype.render) {
         throw new Error('CSS should be annoted on the render method instead of the class')
       }
       oRender = target

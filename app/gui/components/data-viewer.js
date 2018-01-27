@@ -1,4 +1,4 @@
-import { findDOMNode } from 'react-dom'
+import { findDOMNode } from 'preact-compat'
 
 @requireWindow
 @autobind

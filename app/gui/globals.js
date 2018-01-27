@@ -1,5 +1,4 @@
-import PropTypes from 'prop-types'
-import React from 'react'
+import React, { PropTypes } from 'preact-compat'
 import autobind from 'autobind'
 import { EventEmitter } from 'events'
 import { platform } from 'os'
@@ -107,7 +106,7 @@ const startService = () => {
     return
   }
   const cp = fork(require.resolve('../index'), {
-    env: { HEADLESS: '1' }
+    env: { HEADLESS: '1', ...process.env }
   })
   serviceProcess = cp
   cp.on('message', function onMessage (msg) {

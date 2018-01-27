@@ -1,17 +1,17 @@
-if (process.env.DEV) {
+if (process.env.NODE_ENV === 'dev') {
   require('babel-register')
 }
 
 const { UPDATER, SERVICE, HEADLESS } = process.env
 
 if (UPDATER) {
-  require('./update').prepare()
+  // require('./update').prepare()
 } else if (typeof nw !== 'undefined' && !SERVICE && !HEADLESS) {
-  require('./update').startup()
-  .then(() => {
+  // require('./update').startup()
+  // .then(() => {
     require('./globals')
     require('./gui')
-  })
+  // })
 } else {
   console.error('Start worker service:', SERVICE || 'index')
   let modName = './service'

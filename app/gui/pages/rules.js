@@ -1,6 +1,6 @@
 import { Checkbox, Button } from '../components/form'
 import RuleEditor from '../components/rule-editor'
-import { findDOMNode } from 'react-dom'
+import { findDOMNode } from 'preact-compat'
 import { prompt } from './prompt'
 
 @requireWindow

@@ -11,9 +11,12 @@
   "env": {
     "dist": {
       "plugins": [
-        "transform-runtime"
+        "transform-runtime",
+        ["transform-inline-environment-variables", { "include": ["NODE_ENV"] }]
       ],
-      "presets": ["minify"]
+      "presets": [
+        ["minify", { "mangle": false }]
+      ]
     }
   }
 }

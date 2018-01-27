@@ -5,8 +5,6 @@ node_modules/
 dist/
 next/
 old/
-legend/
-userdata/
 *.swp
 *.tmp
 package-lock.json

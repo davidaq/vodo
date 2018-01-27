@@ -62,8 +62,7 @@
           return false
         }
 
-        const { render } = require('react-dom')
-        const { createElement: $ } = require('react')
+        const { render, createElement: $ } = require('preact-compat')
         const { styleEv } = require('../gui/js-css')
         const { default: Context } = require(`../gui/context`)
         const { default: Root } = require(`../gui/pages/${page}`)
