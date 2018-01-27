@@ -9,8 +9,8 @@
   },
   "author": "",
   "license": "ISC",
-  "x-chromium-args": "--no-proxy-server",
-  "chromium-args": "--no-proxy-server --enable-logging=stderr",
+  "chromium-args": "--no-proxy-server",
+  "x-chromium-args": "--no-proxy-server --enable-logging=stderr",
   "build": {
     "appId": "com.davidaq.vodo",
     "strippedProperties": [
