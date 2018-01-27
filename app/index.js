@@ -1,14 +1,6 @@
-require('babel-register')({
-  plugins: [
-    'transform-react-jsx',
-    'transform-decorators-legacy',
-    'transform-react-jsx',
-    'transform-es2015-modules-commonjs',
-    'transform-class-properties',
-    'transform-object-rest-spread'
-  ],
-  highlightCode: false
-})
+if (process.env.DEV) {
+  require('babel-register')
+}
 
 const { UPDATER, SERVICE, HEADLESS } = process.env
 

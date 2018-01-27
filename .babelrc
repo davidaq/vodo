@@ -1,0 +1,19 @@
+{
+  "plugins": [
+    "transform-react-jsx",
+    "transform-decorators-legacy",
+    "transform-react-jsx",
+    "transform-es2015-modules-commonjs",
+    "transform-class-properties",
+    "transform-object-rest-spread"
+  ],
+  "highlightCode": false,
+  "env": {
+    "dist": {
+      "plugins": [
+        "transform-runtime"
+      ],
+      "presets": ["minify"]
+    }
+  }
+}
