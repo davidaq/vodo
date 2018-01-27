@@ -5,13 +5,13 @@
     "transform-react-jsx",
     "transform-es2015-modules-commonjs",
     "transform-class-properties",
-    "transform-object-rest-spread"
+    "transform-object-rest-spread",
+    "external-helpers"
   ],
   "highlightCode": false,
   "env": {
     "dist": {
       "plugins": [
-        "transform-runtime",
         ["transform-inline-environment-variables", { "include": ["NODE_ENV"] }]
       ],
       "presets": [
