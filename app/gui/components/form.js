@@ -100,7 +100,7 @@ export const uniformInput = (Origin, defaultValue) => {
     }
 
     onChange (changeVal) {
-      if (changeVal && typeof changeVal === 'object' && changeVal.target && changeVal.target.hasOwnProperty('value')) {
+      if (changeVal && typeof changeVal === 'object' && changeVal.target && typeof changeVal.target === 'object') {
         changeVal = changeVal.target.value
       }
       this.setState({ value: changeVal })
@@ -112,7 +112,7 @@ export const uniformInput = (Origin, defaultValue) => {
       delete props.value
       delete props.defaultValue
       delete props.onChange
-      return <Origin {...props} value={this.getValue()} onChange={this.onChange} />
+      return <Origin {...props} value={this.getValue()} onChange={this.onChange} onInput={this.onChange} />
     }
   }
   return UniformedInput
