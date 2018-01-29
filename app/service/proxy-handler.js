@@ -414,6 +414,13 @@ const serveStatic = (options, req, res) => {
         encodedRes.on('error', () => res.end())
         reader.pipe(encodedRes)
       }
+      const responseBody = []
+      const bodyLimit = Store.config.singleRequestLimit * 1024 * 1024
+      if (info.size < bodyLimit) {
+        reader.on('data', chunk => {
+          responseBody.push(chunk)
+        })
+      }
       encodedRes.pipe(res)
       reader.on('end', () => {
         const finishTime = Date.now()
@@ -421,7 +428,10 @@ const serveStatic = (options, req, res) => {
         if (options.requestID) {
           IPC.request('record-request', options.requestID, {
             responseBodySize: info.size,
-            responseBody: new Buffer(`<本地文件: ${options.pathname}>`).toString('binary'),
+            responseBody: (responseBody.length > 0
+              ? Buffer.concat(responseBody)
+              : new Buffer(`<本地文件: ${options.pathname}>`)
+            ).toString('binary'),
             finishTime,
             finishElapse
           })
