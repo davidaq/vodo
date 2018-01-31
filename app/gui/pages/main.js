@@ -205,13 +205,18 @@ export const open = () => {
     height: 550,
   }
   openUI('main', options, (win) => {
+    let isQuiting = false
     win.on('close', () => {
-      eventBus.emit('quit')
-      win.close(true)
-      nw.App.quit()
-      setTimeout(() => {
-        process.exit()
-      }, 2000)
+      if (!isQuiting) {
+        isQuiting = true
+        eventBus.emit('quit')
+        nw.App.closeAllWindows()
+        win.close(true)
+        nw.App.quit()
+        setTimeout(() => {
+          process.exit()
+        }, 2000)
+      }
     })
   }, openDetail)
 }

@@ -138,7 +138,7 @@ export const handleProxy = (req, res) => {
       if (contentType) {
         if (/image|audio|video/.test(contentType)) {
           wrapGzip = false
-        } else if (contentType !== 'application/json' && /application/.test(contentType)) {
+        } else if (!/application\/(json|javascript)/.test(contentType) && /application/.test(contentType)) {
           wrapGzip = false
         }
       }
