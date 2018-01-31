@@ -318,9 +318,9 @@ const handleReplace = (options) => {
       let match = true
       if (rule.from.path) {
         if (rule.from.exact) {
-          match = rule.from.path === options.pathname
+          match = rule.from.path === options.path
         } else {
-          match = options.pathname.substr(0, rule.from.path.length) === rule.from.path
+          match = options.path.substr(0, rule.from.path.length) === rule.from.path
         }
       }
       if (match) {
@@ -328,15 +328,18 @@ const handleReplace = (options) => {
         options.hostname = rule.to.domain
         options.host = rule.to.domain
         options.port = rule.to.port
-        options.injectRequestHeaders = rule.requestHeaders
-        options.injectResponseHeaders = rule.responseHeaders
+        options.injectRequestHeaders = {
+          host: rule.to.domain,
+          ...rule.injectRequestHeaders
+        }
+        options.injectResponseHeaders = rule.injectResponseHeaders
         if (rule.to.path) {
-          const oPath = options.pathname
-          options.pathname = rule.to.path
+          const oPath = options.path
+          options.path = rule.to.path
           if (rule.from.path && !rule.to.exact && !rule.from.exact) {
-            options.pathname += oPath.substr(rule.from.path.length)
+            options.path += oPath.substr(rule.from.path.length)
           }
-          options.path = options.pathname
+          options.path = options.path
           if (options.search) {
             options.path += options.search
           }

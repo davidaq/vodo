@@ -185,19 +185,26 @@ class RuleEditor extends Component {
               onChange={val => this.onChange('from', 'protocol', val)}
             />
           </Field>
-          <Field label="匹配域名">
-            <Input
-              value={value.from.domain}
-              onChange={val => this.onChange('from', 'domain', val)}
-            />
-          </Field>
-          <Field label="匹配端口">
-            <Input
-              value={value.from.port}
-              type="number"
-              onChange={val => this.onChange('from', 'port', val)}
-            />
-          </Field>
+          <div>
+            <div style={{ width: '69%', display: 'inline-block' }}>
+              <Field label="匹配域名">
+                <Input
+                  value={value.from.domain}
+                  onChange={val => this.onChange('from', 'domain', val)}
+                />
+              </Field>
+            </div>
+            <div style={{ width: '1.5%', display: 'inline-block' }} />
+            <div style={{ width: '29%', display: 'inline-block' }}>
+              <Field label=" 端口" labelWidth={30}>
+                <Input
+                  value={value.from.port}
+                  type="number"
+                  onChange={val => this.onChange('from', 'port', val)}
+                />
+              </Field>
+            </div>
+          </div>
           <Field label="匹配路径">
             <Input
               value={value.from.path}
@@ -251,19 +258,26 @@ class RuleEditor extends Component {
               onChange={val => this.onChange('to', 'protocol', val)}
             />
           </Field>
-          <Field label="替换域名">
-            <Input
-              value={value.to.domain}
-              onChange={val => this.onChange('to', 'domain', val)}
-            />
-          </Field>
-          <Field label="替换端口">
-            <Input
-              value={value.to.port}
-              type="number"
-              onChange={val => this.onChange('to', 'port', val)}
-            />
-          </Field>
+          <div>
+            <div style={{ width: '69%', display: 'inline-block' }}>
+              <Field label="替换域名">
+                <Input
+                  value={value.to.domain}
+                  onChange={val => this.onChange('to', 'domain', val)}
+                />
+              </Field>
+            </div>
+            <div style={{ width: '1.5%', display: 'inline-block' }} />
+            <div style={{ width: '29%', display: 'inline-block' }}>
+              <Field label="端口" labelWidth={30}>
+                <Input
+                  value={value.to.port}
+                  type="number"
+                  onChange={val => this.onChange('to', 'port', val)}
+                />
+              </Field>
+            </div>
+          </div>
           <Field label="替换路径">
             {value.to.protocol === 'file:' ? (
               <div className="file">

@@ -52,7 +52,7 @@ class Rules extends Component {
       comp: RuleEditor,
       defaultValue
     }, {
-      height: 390,
+      height: 350,
       width: 800
     })
     this.promptWin = ret
@@ -250,7 +250,7 @@ class Rules extends Component {
                 {rule.from.protocol}//{rule.from.domain}:{rule.from.port}{rule.from.path || '/*'}{rule.from.path && rule.from.exact ? '' : '*'}
               </div>
               <div className="half">
-                {rule.to.protocol === 'file' ? (
+                {rule.to.protocol !== 'file:' ? (
                   <span>
                     {rule.to.protocol}//{rule.to.domain}:{rule.to.port}{rule.to.path || '/*'}{rule.to.path && rule.to.exact ? '' : '*'}
                   </span>
