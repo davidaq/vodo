@@ -1,3 +1,4 @@
+import { parse as parseurl } from 'url'
 import { Button, Field, Input, Tabs } from './form'
 import { prompt } from '../pages/prompt'
 
@@ -30,6 +31,16 @@ class RuleEditor extends Component {
         update.port = '443'
       } else if (value === 'http:' && update.protocol === 'https:' && update.port == 443) {
         update.port = '80'
+      }
+    }
+    if (field === 'path' && /https?\:\/\//.test(value)) {
+      const opt = parseurl(value)
+      value = opt.path
+      update.port = opt.port
+      update.domain = opt.hostname
+      update.protocol = opt.protocol
+      if (!update.port) {
+        update.port = opt.protocol === 'https:' ? '443' : '80'
       }
     }
     update[field] = value
