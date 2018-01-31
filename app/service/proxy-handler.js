@@ -162,6 +162,7 @@ export const handleProxy = (req, res) => {
       delete proxyRes.headers['content-length']
       delete proxyRes.headers['content-security-policy']
       if (encodedRes === proxyRes) {
+        delete proxyRes.headers['content-encoding']
         encodedRes = new PassThrough()
       }
     }

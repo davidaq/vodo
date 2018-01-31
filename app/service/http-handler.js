@@ -1,4 +1,5 @@
 import { createServer } from 'http'
+import { parse as parseurl } from 'url'
 import { connect as connectTCP } from 'net'
 import { serve as serveApi } from './api'
 import { certDomain } from './ssl-cert'
@@ -49,6 +50,35 @@ const connectSSLTunnel = (req, sock, head) => {
   }
 
   const beginDirect = () => {
+    if (Store.config.recordRequest) {
+      const options = parseurl(`tcp://${domain}:${port}/*`)
+      options.requestID = ID()
+      options.method = 'DIRECT'
+      options.statusCode = 0
+      options.statusMessage = 'Not Parsed'
+      options.startTime = Date.now()
+      options.responseTime = Date.now()
+      options.responseElapse = 0
+      options.finishTime = Date.now()
+      options.finishElapse = 0
+      options.headers = {}
+      options.responseHeaders = {}
+      options.requestBodySize = 0
+      options.responseBodySize = 0
+      options.requestBody = ''
+      options.responseBody = ''
+      IPC.request('record-request', options.requestID, options)
+      IPC.emit('caught-request-begin', {
+        requestID: options.requestID,
+        startTime: options.startTime,
+        protocol: options.protocol,
+        hostname: options.hostname,
+        port: options.port,
+        method: options.method,
+        pathname: options.pathname
+      })
+      IPC.emit('caught-request-finish', options.requestID, { size: 0, finishElapse: 0 })
+    }
     doTunnel(connectTCP(port, domain))
   }
 
