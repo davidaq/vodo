@@ -33,7 +33,7 @@ class RuleEditor extends Component {
         update.port = '80'
       }
     }
-    if (field === 'path' && /https?\:\/\//.test(value)) {
+    if (field === 'path' && /^https?\:\/\//.test(value)) {
       const opt = parseurl(value)
       value = opt.path
       update.port = opt.port
