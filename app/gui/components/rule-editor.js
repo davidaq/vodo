@@ -96,7 +96,7 @@ class RuleEditor extends Component {
   onRemoveHeader (field, key) {
     const val = { ...this.props.value[field] }
     delete val[key]
-    this.onChange({ ...this.props.value, [field]: val })
+    this.props.onChange({ ...this.props.value, [field]: val })
   }
 
   @CSS({
