@@ -339,9 +339,13 @@ const handleReplace = (options) => {
           if (rule.from.path && !rule.to.exact && !rule.from.exact) {
             options.path += oPath.substr(rule.from.path.length)
           }
-          options.path = options.path
-          if (options.search) {
-            options.path += options.search
+          const searchPos = options.path.indexOf('?')
+          if (searchPos > -1) {
+            options.pathname = options.path.substr(0, searchPos)
+            options.search = options.path.substr(searchPos)
+          } else {
+            options.pathname = options.path
+            options.search = null
           }
         }
         options.href = options.protocol + '//' + options.hostname +

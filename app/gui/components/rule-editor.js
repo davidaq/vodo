@@ -295,6 +295,7 @@ class RuleEditor extends Component {
                 <Input
                   value={value.to.path}
                   onChange={val => this.onChange('to', 'path', val)}
+                  style={{ paddingRight: 28 }}
                 />
                 <a onClick={this.onChooseToFile} className="fa fa-folder-o" />
               </div>
