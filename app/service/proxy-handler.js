@@ -132,7 +132,7 @@ export const handleProxy = (req, res) => {
         encodedRes = decodedRes
         proxyRes.headers['content-encoding'] = 'identity'
       }
-    } else if (!maybeHTML && clientAllowGzip) {
+    } else if (clientAllowGzip) {
       const contentType = proxyRes.headers['content-type']
       let wrapGzip = true
       if (contentType) {
@@ -151,15 +151,19 @@ export const handleProxy = (req, res) => {
           encodedRes = createGzip({ flush: Z_SYNC_FLUSH || constants.Z_SYNC_FLUSH })
         }
         encodedRes.on('error', err => console.error(err.stack) || encodedRes.end())
-        proxyRes.pipe(encodedRes)
+        if (!maybeHTML) {
+          proxyRes.pipe(encodedRes)
+        }
       }
     }
     if (maybeHTML) {
-      proxyRes.headers['content-encoding'] = 'identity'
       proxyRes.headers['cache-control'] = 'no-cache'
       delete proxyRes.headers['expires']
       delete proxyRes.headers['content-length']
       delete proxyRes.headers['content-security-policy']
+      if (encodedRes === proxyRes) {
+        encodedRes = new PassThrough()
+      }
     }
     const responseHeaders = resolveHeaders(proxyRes.headers, proxyRes.rawHeaders, options.injectResponseHeaders)
     const responseTime = Date.now()
@@ -175,9 +179,7 @@ export const handleProxy = (req, res) => {
     }
     res.writeHead(proxyRes.statusCode, proxyRes.statusMessage, responseHeaders)
     res.headWritten = true
-    if (!maybeHTML) {
-      encodedRes.pipe(res)
-    }
+    encodedRes.pipe(res)
     let size = 0
     const responseBuffer = []
     decodedRes.on('data', (chunk) => {
@@ -199,7 +201,7 @@ export const handleProxy = (req, res) => {
             chunk = new Buffer(headContent)
           }
         }
-        res.write(chunk)
+        encodedRes.write(chunk)
       }
       size += chunk.length
       if (size < bodyLimit) {
@@ -208,7 +210,7 @@ export const handleProxy = (req, res) => {
     })
     decodedRes.on('end', () => {
       if (maybeHTML) {
-        res.end()
+        encodedRes.end()
       }
       const finishTime = Date.now()
       const finishElapse = finishTime - startTime
