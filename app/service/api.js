@@ -47,6 +47,9 @@ export const serve = (req, res) => {
   case '/live-sse':
     live(req, res)
     break
+  case '/sign':
+    sign(req, res)
+    break
   default:
     res.writeHead(404)
     res.end(`No matching route: ${req.url}`)
@@ -75,6 +78,14 @@ function cert (req, res) {
     'Content-Disposition': 'attachment; filename=' + fname
   })
   res.end(rootPair.cer)
+}
+
+function sign (req, res) {
+  const domain = req.query.search.substr(1)
+  IPC.request('gen-ssl-cert', domain)
+  .then((cert) => {
+    res.end(JSON.stringify(cert))
+  })
 }
 
 function appData (req, res) {

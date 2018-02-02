@@ -292,9 +292,6 @@ export const handleProxy = (req, res) => {
 }
 
 const handleReplace = (options) => {
-  if (!Store.config.useReplaceRules) {
-    return
-  }
   for (let i = 0; i < Store.replaceRules.length; i++) {
     const rule = Store.replaceRules[i]
     if (!rule.enabled) {

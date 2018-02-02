@@ -1,11 +1,16 @@
 import TitleBar from '../components/title-bar'
 import { Field, Tip, Input, Checkbox, Textarea, Button } from '../components/form'
 import { prompt } from './prompt'
+import { execSync } from 'child_process'
 
 @autobind
 class Config extends Component {
   componentWillMount () {
-    this.setState({ store: eventBus.store })
+    let useLocalProxy = false
+    //if (isOsX) {
+    //  execSync('networksetup -getwebproxy Wi-Fi')
+    //}
+    this.setState({ store: eventBus.store, useLocalProxy })
     eventBus.on('store', this.onStoreChange)
   }
 
@@ -73,6 +78,10 @@ class Config extends Component {
     const val = { ...this.state.store[field] }
     delete val[key]
     this.onSetVal({ [field]: val }, true)
+  }
+
+  onUseLocalPorxy (val) {
+    
   }
 
   @CSS({
@@ -150,7 +159,7 @@ class Config extends Component {
     }
   })
   render () {
-    const { store } = this.state
+    const { store, useLocalProxy } = this.state
     if (!store || !store.config) {
       return (
         <div className="config">
@@ -191,7 +200,7 @@ class Config extends Component {
             <Checkbox {...bindConfig('simulateSlowNetwork')}>模拟慢速网速</Checkbox>
             <Checkbox {...bindConfig('useReplaceRules')}>应用转发规则</Checkbox>
             {null && <Checkbox {...bindConfig('useInjectHeaders')}>注入请求/响应头</Checkbox>}
-            <Checkbox {...bindConfig('useHtmlInjectScript')}>注入JS脚本</Checkbox>
+            <Checkbox value={useLocalProxy} onChange={this.onUseLocalPorxy}>抓取我的{isOsX ? 'Mac' : 'PC'}</Checkbox>
             <Checkbox {...bindConfig('ignoreHTTPS')}>忽略HTTPS</Checkbox>
           </div>
           <div className="section">
