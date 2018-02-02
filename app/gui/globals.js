@@ -121,6 +121,9 @@ const startService = () => {
   })
   const startTime = Date.now()
   cp.on('close', () => {
+    if (global.eventBus.quit) {
+      return
+    }
     global.eventBus.hasServiceProcess = false
     global.eventBus.emit('connection')
     serviceProcess = null
@@ -153,9 +156,10 @@ eventBus.on('change-service', (addr) => {
   }
 })
 
-eventBus.on('quit', () => {
+global.eventBus.on('quit', () => {
   if (serviceProcess) {
     serviceProcess.kill('SIGKILL')
+    global.eventBus.quit = true
   }
 })
 
