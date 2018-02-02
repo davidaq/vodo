@@ -155,7 +155,7 @@ eventBus.on('change-service', (addr) => {
 
 eventBus.on('quit', () => {
   if (serviceProcess) {
-    serviceProcess.kill()
+    serviceProcess.kill('SIGKILL')
   }
 })
 

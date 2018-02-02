@@ -146,14 +146,7 @@ if (process.env.FORKED) {
       processSpawning++
       let ready = false
       proc.on('close', (code) => {
-        if (code) {
-          process.exit(code)
-        }
-        if (ready) {
-          childProcess.splice(childProcess.indexOf(proc), 1)
-        } else {
-          processSpawning--
-        }
+        process.exit(code)
       })
       const waiters = {}
       proc.on('message', (msg) => {

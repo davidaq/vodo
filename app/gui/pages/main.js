@@ -214,7 +214,7 @@ export const open = () => {
         win.close(true)
         nw.App.quit()
         setTimeout(() => {
-          process.exit()
+          process.exit(0)
         }, 2000)
       }
     })
