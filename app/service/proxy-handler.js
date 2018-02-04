@@ -131,6 +131,7 @@ export const handleProxy = (req, res) => {
       if (!clientAllowGzip) {
         encodedRes = decodedRes
         proxyRes.headers['content-encoding'] = 'identity'
+        delete proxyRes.headers['content-length']
       }
     } else if (clientAllowGzip) {
       const contentType = proxyRes.headers['content-type']
