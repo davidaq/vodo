@@ -10,6 +10,9 @@ export function examine (buffer) {
   }
   const match = fileType(buffer)
   if (match) {
+    if (match.mime === 'application/xml') {
+      return 'text/xml'
+    }
     return match.mime
   } else if (isUtf8(buffer)) {
     if (isSvg(buffer)) {

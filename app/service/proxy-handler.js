@@ -1,5 +1,7 @@
 import { request as requestHTTP } from 'http'
 import { request as requestHTTPS } from 'https'
+import { connect as createTCPConnection } from 'net'
+import { connect as createSSLConnection } from 'tls'
 import { createGzip, createGunzip, constants, Z_SYNC_FLUSH } from 'zlib'
 import { PassThrough } from 'stream'
 import { stat, createReadStream, createWriteStream } from 'fs'
@@ -62,7 +64,6 @@ function resolveHeaders (headers, rawHeaders, injectHeaders) {
 
 export const handleProxy = (req, res) => {
   const clientAllowGzip = /gzip/.test(req.headers['accept-encoding'] || '')
-  req.headers['accept-encoding'] = 'gzip'
   const options = parse(req.url)
   if (options.protocol === 'https:' && !options.port) {
     options.port = '443'
@@ -75,7 +76,7 @@ export const handleProxy = (req, res) => {
   } catch (err) {
     console.error(err.stack)
   }
-  let maybeHTML = !!/^text\/html/.test(req.headers['accept'])
+  let maybeHTML = req.method.toUpperCase() === 'GET' && !!/^text\/html/.test(req.headers['accept'])
   if (maybeHTML) {
     req.headers['cache-control'] = 'no-cache'
     req.headers['pragma'] = 'no-cache'
@@ -94,7 +95,7 @@ export const handleProxy = (req, res) => {
   delete req.headers['x-vodo-no-record']
   options.port = `${options.port}`
   options.headers = resolveHeaders(req.headers, req.rawHeaders, options.injectRequestHeaders)
-  options.method = req.method
+  options.method = req.method.toUpperCase()
   if (options.protocol === 'file:') {
     serveStatic(options, req, res)
     return
@@ -121,10 +122,21 @@ export const handleProxy = (req, res) => {
   }
   options.timeout = 5000
   const bodyLimit = Store.config.singleRequestLimit * 1024 * 1024
-  const proxyReq = request(options, proxyRes => {
+  const createConnection = (sockOptions, cb) => {
+    let conn = createTCPConnection
+    if (options.protocol === 'https:') {
+      conn = createSSLConnection
+    }
+    if (!req.socket.$proxyPeer) {
+      req.socket.$proxyPeer = conn({ host: options.hostname, port: options.port })
+    }
+    cb(null, req.socket.$proxyPeer)
+  }
+  const proxyReq = request(Object.assign({ createConnection }, options), proxyRes => {
     let decodedRes = proxyRes
     let encodedRes = proxyRes
-    if (proxyRes.headers['content-encoding'] === 'gzip') {
+    const encoding = proxyRes.headers['content-encoding']
+    if (encoding === 'gzip') {
       decodedRes = createGunzip()
       decodedRes.on('error', err => console.error(err.stack) || decodedRes.end())
       proxyRes.pipe(decodedRes)
@@ -133,7 +145,7 @@ export const handleProxy = (req, res) => {
         proxyRes.headers['content-encoding'] = 'identity'
         delete proxyRes.headers['content-length']
       }
-    } else if (clientAllowGzip) {
+    } else if (clientAllowGzip && (encoding === 'identity' || !encoding)) {
       const contentType = proxyRes.headers['content-type']
       let wrapGzip = true
       if (contentType) {
