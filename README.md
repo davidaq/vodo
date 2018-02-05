@@ -3,6 +3,8 @@ Vodo
 
 移动开发盛行的背景下，一个好用的 HTTP[S] 请求抓包工具。然而现存的软件当中，Fiddler、Charles都是收费软件，开源的工具功能都太简单，没有可比性。自制这个抓包工具一是为了提供一个功能比较强大的开源方案，另一方面也解决诸如 Fiddler 对 Mac 兼容性不好，Charles不支持 HTTPS 转发HTTP 等问题，更重要的是，这个项目中文优先。
 
+![](https://raw.githubusercontent.com/davidaq/vodo/master/doc/images/main-window.png)
+
 ## 支持的功能
 
  - 通过代理实现请求记录
@@ -21,6 +23,11 @@ Vodo
  - 慢速、不稳定网络环境模拟
  - 注入 Vorlon 远程调试
 
+## 已知问题
+
+ - 极偶然的情况下，软件界面上一些图标会显示不出来。遇到这种情况，重新打开软件即可
+ - 电脑进入睡眠状态再唤醒后，代理服务器可能会关闭。遇到这种情况，重新打开软件即可
+
 使用说明
 =======
 
@@ -38,6 +45,8 @@ Vodo 是通过代理的方式来截取网络请求，工作原理与 Fiddler、C
  1. 有些设备或 App 需要重启需要调试的 App
  1. 请求记录会开始出现在主界面的左侧列表当中
 
+![](https://raw.githubusercontent.com/davidaq/vodo/master/doc/images/proxy-addr.png)
+
 ### 列表模式
 
 左侧列表有两种展示模式：
@@ -45,9 +54,15 @@ Vodo 是通过代理的方式来截取网络请求，工作原理与 Fiddler、C
  - **结构树：** 将记录到的请求路径以“／”分列，以文件夹的形式展示
  - **时序列表：** 以列表的形式按请求开始时间顺序依次列出所有请求记录
 
+![](https://raw.githubusercontent.com/davidaq/vodo/master/doc/images/record-tree.png)
+
+![](https://raw.githubusercontent.com/davidaq/vodo/master/doc/images/record-list.png)
+
 ### 请求基本信息
 
 点击查看某个请求的详情，首先会看到请求的“基本信息”。在此可以见到本次请求的摘要、请求头、响应头。
+
+![](https://raw.githubusercontent.com/davidaq/vodo/master/doc/images/request-basic-info.png)
 
 ### 请求数据
 
@@ -79,6 +94,8 @@ Vodo 是通过代理的方式来截取网络请求，工作原理与 Fiddler、C
 在第一次启动 Vodo 的时候，会生成一个 SSL 根证书，Vodo 会使用这个根证书来声场伪造的网站 SSL 证书。设备信任了这个根证书，就会信任所有 Vodo 所伪造出来的证书。
 
 Vodo 给每个用户生成的根证书都是不一样的，也不会以任何形式将秘钥公开，所以你不必担信任根证书会有产生不安全的问题。
+
+![](https://raw.githubusercontent.com/davidaq/vodo/master/doc/images/download-ssl.png)
 
 ### 安卓系统安装证书
 
@@ -121,6 +138,8 @@ Vodo 给每个用户生成的根证书都是不一样的，也不会以任何形
  1. 选择信任所有
 
 ## 请求替换规则
+
+![](https://raw.githubusercontent.com/davidaq/vodo/master/doc/images/replace-rule-prompt.png)
 
 除了抓包，求情替换也是 Vodo 的核心功能。转发有两种：
 
