@@ -28,6 +28,7 @@ function createConnection (options, cb) {
     reqSocket.on('close', () => {
       sock.end()
     })
+    sock.on('end', () => reqSocket.end())
     reqSocket.$proxyPeer = sock
   }
   cb(null, reqSocket.$proxyPeer)
