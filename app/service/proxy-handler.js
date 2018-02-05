@@ -16,6 +16,23 @@ const forbidenInjectHeaderkeys = {
   'content-length': true
 }
 
+function createConnection (options, cb) {
+  const { reqSocket, hostname, port } = options
+  if (!reqSocket.$proxyPeer) {
+    let conn = createTCPConnection
+    if (options.protocol === 'https:') {
+      conn = createSSLConnection
+    }
+    const sock = conn({ host: hostname, port })
+    sock.on('error', err => null)
+    reqSocket.on('close', () => {
+      sock.end()
+    })
+    reqSocket.$proxyPeer = sock
+  }
+  cb(null, reqSocket.$proxyPeer)
+}
+
 function resolveHeaders (headers, rawHeaders, injectHeaders) {
   const outHeaders = {}
   const renameHeaders = {}
@@ -122,17 +139,7 @@ export const handleProxy = (req, res) => {
   }
   options.timeout = 5000
   const bodyLimit = Store.config.singleRequestLimit * 1024 * 1024
-  const createConnection = (sockOptions, cb) => {
-    let conn = createTCPConnection
-    if (options.protocol === 'https:') {
-      conn = createSSLConnection
-    }
-    if (!req.socket.$proxyPeer) {
-      req.socket.$proxyPeer = conn({ host: options.hostname, port: options.port })
-    }
-    cb(null, req.socket.$proxyPeer)
-  }
-  const proxyReq = request(Object.assign({ createConnection }, options), proxyRes => {
+  const proxyReq = request(Object.assign({ createConnection, reqSocket: req.socket }, options), proxyRes => {
     let decodedRes = proxyRes
     let encodedRes = proxyRes
     const encoding = proxyRes.headers['content-encoding']
