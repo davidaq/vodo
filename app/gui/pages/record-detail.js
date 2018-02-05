@@ -251,7 +251,7 @@ class RecordDetail extends Component {
               </div>
             </div>
             {tab === 'basic' ? (
-              <div>
+              <div key="basic">
                 <div className="section">
                   <label>摘要</label>
                 </div>
@@ -373,7 +373,7 @@ class RecordDetail extends Component {
                 )) : null}
               </div>
             ) : tab === 'request' ? (
-              <div>
+              <div key="request">
                 <div className="section">
                   <label>地址参数</label>
                 </div>
@@ -440,7 +440,7 @@ class RecordDetail extends Component {
                 )}
               </div>
             ) : tab === 'response' ? (
-              <div>
+              <div key="response">
                 <div className="section">
                   <label>接收数据</label>
                 </div>

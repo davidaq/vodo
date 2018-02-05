@@ -53,7 +53,7 @@ class Rules extends Component {
       defaultValue
     }, {
       height: 350,
-      width: 800
+      width: 780
     })
     this.promptWin = ret
     ret.catch(err => {

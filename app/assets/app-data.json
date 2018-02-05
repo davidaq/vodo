@@ -3,9 +3,8 @@
     "port": 8888,
     "allRequestLimit": 200,
     "singleRequestLimit": 1,
-    "recordRequest": false,
-    "ignoreHTTPS": true,
-    "useReplaceRules": true,
+    "recordRequest": true,
+    "ignoreHTTPS": false,
     "useHtmlInjectScript": true,
     "simulateSlowNetwork": false,
     "simulateUnstableNetwork": false

@@ -10,13 +10,25 @@ class ListRecord extends Component {
       lineHeight: 25
     },
     '.fa': {
-      marginRight: 5
+      width: 16,
+      textAlign: 'center'
     },
     '.leaf': {
       paddingLeft: 5,
       '&.select': {
         background: '#DDD'
       }
+    },
+    '.method': {
+      display: 'inline-block',
+      verticalAlign: 'middle',
+      color: '#AAA',
+      transform: 'scale(0.6)',
+      width: 40,
+      textAlign: 'center',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     },
     '.hot .hotbg': {
       '@keyframes hot': {
@@ -53,6 +65,9 @@ class ListRecord extends Component {
                 'fa-check': record.status === 'finish',
                 'fa-close': record.status === 'error',
               })} />
+              <span className="method">
+                {record.method.toUpperCase()}
+              </span>
               {selected === record.requestID ? (
                 <ScrollToMe />
               ): null}

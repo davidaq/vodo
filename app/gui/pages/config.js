@@ -196,11 +196,9 @@ class Config extends Component {
           <div className="section">
             <div className="title">开关</div>
             <Checkbox {...bindConfig('recordRequest')}>记录请求</Checkbox>
-            <Checkbox {...bindConfig('simulateUnstableNetwork')}>模拟不稳定网络</Checkbox>
-            <Checkbox {...bindConfig('simulateSlowNetwork')}>模拟慢速网速</Checkbox>
-            <Checkbox {...bindConfig('useReplaceRules')}>应用转发规则</Checkbox>
-            {null && <Checkbox {...bindConfig('useInjectHeaders')}>注入请求/响应头</Checkbox>}
-            <Checkbox value={useLocalProxy} onChange={this.onUseLocalPorxy}>抓取我的{isOsX ? 'Mac' : 'PC'}</Checkbox>
+            {null && <Checkbox {...bindConfig('simulateUnstableNetwork')}>模拟不稳定网络</Checkbox>}
+            {null && <Checkbox {...bindConfig('simulateSlowNetwork')}>模拟慢速网速</Checkbox>}
+            {null && <Checkbox value={useLocalProxy} onChange={this.onUseLocalPorxy}>抓取我的{isOsX ? 'Mac' : 'PC'}</Checkbox>}
             <Checkbox {...bindConfig('ignoreHTTPS')}>忽略HTTPS</Checkbox>
           </div>
           <div className="section">

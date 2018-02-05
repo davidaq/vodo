@@ -18,9 +18,7 @@ export const serve = (req, res) => {
   req.query = parse(req.url)
   switch (req.query.pathname) {
   case '/':
-    console.log('/', req.headers['host'])
     if (req.headers['host'] && !/vo\.do/.test(req.headers['host'])) {
-      console.log('red')
       res.writeHead(302, {
         'Location': `http://vo.do${req.url}`
       })

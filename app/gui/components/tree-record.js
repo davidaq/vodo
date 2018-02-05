@@ -30,11 +30,12 @@ class TreeRecord extends Component {
 
   @CSS({
     '.node': {
-      fontSize: 11,
+      fontSize: 12,
       lineHeight: 25
     },
     '.fa': {
-      marginRight: 5
+      width: 16,
+      textAlign: 'center'
     },
     '.name, .leaf': {
       cursor: 'pointer'
@@ -44,6 +45,11 @@ class TreeRecord extends Component {
     },
     '.leaf.select': {
       background: '#DDD'
+    },
+    '.method': {
+      display: 'inline-block',
+      color: '#AAA',
+      transform: 'scale(0.6)',
     },
     '.hot .hotbg': {
       '@keyframes hot': {
@@ -119,6 +125,9 @@ class TreeRecord extends Component {
                           <ScrollToMe />
                         ): null}
                         {leaf.name}
+                        <span className="method">
+                          {leaf.record.method.toUpperCase()}
+                        </span>
                       </div>
                     </div>
                   ))}
