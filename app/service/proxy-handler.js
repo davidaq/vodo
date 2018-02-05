@@ -23,9 +23,18 @@ function createConnection (options, cb) {
     if (options.protocol === 'https:') {
       conn = createSSLConnection
     }
-    const sock = conn({ host: hostname, port })
-    sock.on('error', err => null)
+    const sock = conn({ host: hostname, port, allowHalfOpen: true })
+    const connTimeout = setTimeout(() => {
+      reqSocket.end()
+      sock.destroy()
+    }, 5000)
+    sock.on('connnect', () => {
+      sock.setKeepAlive(true)
+      clearTimeout(connTimeout)
+    })
+    sock.on('error', err => clearTimeout(connTimeout))
     reqSocket.on('close', () => {
+      clearTimeout(connTimeout)
       sock.end()
     })
     sock.on('end', () => reqSocket.end())
