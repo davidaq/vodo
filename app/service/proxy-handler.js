@@ -24,9 +24,10 @@ function createConnection (options, cb) {
       conn = createSSLConnection
     }
     const sock = conn({ host: hostname, port, allowHalfOpen: true })
+    // TODO: handle different host after replace rule
     sock.on('error', err => null)
     reqSocket.on('close', () => {
-      sock.end()
+      setTimeout(() => sock.end(), 5000)
     })
     sock.on('close', () => {
       reqSocket.$proxyPeer = null
@@ -144,7 +145,7 @@ export const handleProxy = (req, res) => {
   }
   options.timeout = 5000
   const bodyLimit = Store.config.singleRequestLimit * 1024 * 1024
-  const proxyReq = request(Object.assign({ reqSocket: req.socket }, options), proxyRes => {
+  const proxyReq = request(Object.assign({ createConnection, reqSocket: req.socket }, options), proxyRes => {
     let decodedRes = proxyRes
     let encodedRes = proxyRes
     const encoding = proxyRes.headers['content-encoding']
