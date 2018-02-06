@@ -20,5 +20,5 @@ npm ls --production --parseable | node build/filter-node-modules.js | while read
 node build/create-zip.js
 mv build/dist/patch.zip dist
 
-build --tasks win-x64,mac-x64 --mirror https://npm.taobao.org/mirrors/nwjs/ build/dist
+build --tasks mac-x64,win-x64 --mirror https://npm.taobao.org/mirrors/nwjs/ build/dist
 mv build/dist/dist/* dist

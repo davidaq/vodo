@@ -1,4 +1,4 @@
-import { writeFile, readFile, readdir, mkdir, rename, stat, unlink } from 'fs'
+import { writeFile, readFileSync, readdir, mkdir, rename, stat, unlink } from 'fs'
 import { resolve, relative, join, dirname } from 'path'
 import unzip from 'decompress-unzip'
 import { fork } from 'child_process'
@@ -11,36 +11,31 @@ if (typeof fetch === 'undefined') {
   global.fetch = require('node-fetch')
 }
 
+global.APP_VERSION = (() => {
+  let version = JSON.parse(readFileSync(join(basedir, 'package.json'))).version
+  try {
+    const patchVersion = readFileSync(join(basedir, 'version.txt')).trim()
+    if (patchVersion) {
+      version = patchVersion
+    }
+  } catch (err) {
+    console.error(err)
+  }
+  return version
+})()
+
 export const prepare = () => {
   if (process.env.NODE_ENV === 'dev') {
     return
   }
-  Promise.all([
-    new Promise(resolve => {
-      readFile(join(basedir, 'package.json'), (err, content) => {
-        const { version } = JSON.parse(content)
-        resolve(version)
-      })
-    }),
-    new Promise(resolve => {
-      readFile(join(basedir, 'version.txt'), (err, content) => {
-        if (err) {
-          resolve(null)
-        } else {
-          resolve(content.toString().trim())
-        }
-      })
-    }),
-    fetch('https://api.github.com/repos/davidaq/vodo/releases')
-    .then(r => r.json())
-  ])
-  .then(([baseVersion, curVersion, versionList]) => {
-    curVersion = curVersion || baseVersion
+  fetch('https://api.github.com/repos/davidaq/vodo/releases')
+  .then(r => r.json())
+  .then((versionList) => {
     for (const version of versionList) {
       if (!/^patch-/.test(version.name)) {
         continue
       }
-      if (version.body.indexOf(`- ${curVersion}`) < 0) {
+      if (version.body.indexOf(`- ${APP_VERSION}`) < 0) {
         continue
       }
       const match = version.body.match(/\[patch bundle\]\((.*?)\)/)

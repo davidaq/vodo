@@ -1,11 +1,13 @@
 import classnames from 'classnames'
 import TitleBar from '../components/title-bar'
+import { Checkbox } from '../components/form'
 import { Colors } from '../colors';
 import { open as openConfig } from './config'
 import Record from './record'
 import { openFile as openDetail } from './record-detail'
 import Rules from './Rules'
 import { prompt } from './prompt'
+import opn from 'opn'
 
 @requireWindow
 @autobind
@@ -17,21 +19,29 @@ class Main extends Component {
         '抓包记录',
         '转发规则'
       ],
-      connected: eventBus.connnected
+      connected: eventBus.connnected,
+      useLocalProxy: false
     })
     this.context.nativeWindow.setMinimumSize(700, 350)
     eventBus.on('connection', this.onConnectedChange)
     eventBus.on('service:store', this.onConnectedChange)
+    this.pollInterval = setInterval(this.onConnectedChange, 5000)
   }
 
   componentWillUnmount () {
     eventBus.removeListener('connection', this.onConnectedChange)
     eventBus.removeListener('service:store', this.onConnectedChange)
+    clearInterval(this.pollInterval)
   }
 
   onConnectedChange () {
+    const store = eventBus.store
     this.setState({
-      connected: eventBus.connected
+      connected: eventBus.connected,
+      hasServiceProcess: eventBus.hasServiceProcess,
+      useLocalProxy: eventBus.useLocalProxy,
+      addr: store && store.addr,
+      port: store && store.config.port
     })
   }
 
@@ -53,6 +63,14 @@ class Main extends Component {
     .then(val => {
       eventBus.emit('change-service', val)
     })
+  }
+
+  onOpenGithub () {
+    opn('https://github.com/davidaq/vodo', { wait: false })
+  }
+
+  onUseLocalProxy (val) {
+    eventBus.emit('use-local-proxy', val)
   }
 
   @CSS({
@@ -110,11 +128,12 @@ class Main extends Component {
       position: 'absolute',
       top: isWindows ? 30 : 5,
       right: 5,
-      fontSize: 10,
+      fontSize: 12,
       '.fa': {
         padding: '3px 5px',
         cursor: 'pointer',
         transition: 'background 0.3s',
+        fontSize: 14,
         '&:hover': {
           background: 'rgba(255, 255, 255, 0.15)',
         }
@@ -150,6 +169,24 @@ class Main extends Component {
           width: '100%',
           height: '100%'
         }
+      },
+      '.footer': {
+        flex: 'none',
+        height: 22,
+        lineHeight: 22,
+        borderTop: '1px solid #CCC',
+        background: '#FAFAFA',
+        padding: '0 5px',
+        fontSize: 12,
+        color: '#555',
+        '.left': {
+          float: 'left',
+          transform: 'scale(0.9) translateX(-5%)'
+        },
+        '.right': {
+          float: 'right',
+          transform: 'scale(0.9) translateX(5%)'
+        }
       }
     }
   })
@@ -169,13 +206,14 @@ class Main extends Component {
               </div>
               <div className="extra">
                 {this.state.connected ? (
-                  <span className="tip" onClick={this.onChangeAddr}>代理已启动 - {eventBus.store.addr} : {eventBus.store.config.port}</span>
-                ) : eventBus.hasServiceProcess ? (
+                  <span className="tip" onClick={this.onChangeAddr}>代理已启动 - {this.state.addr} : {this.state.port}</span>
+                ) : this.state.hasServiceProcess ? (
                   <span className="tip" onClick={this.onChangeAddr}>正在启动代理服务器</span>
                 ) : (
                   <span className="tip" onClick={this.onChangeAddr}>代理未启动，点击这里改变端口</span>
                 )}
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <a className="fa fa-github" onClick={this.onOpenGithub} title="了解本项目"></a>
                 <a className="fa fa-folder-open-o" onClick={this.onOpenDetail} title="打开请求记录"></a>
                 <a className="fa fa-cog" onClick={this.onOpenConfig} title="设置"></a>
               </div>
@@ -190,6 +228,16 @@ class Main extends Component {
             ) : (
               <Rules />
             )}
+          </div>
+        </div>
+        <div className="footer">
+          <div className="left">
+            <Checkbox value={this.state.useLocalProxy} onChange={this.onUseLocalProxy}>
+              监听我的{isOsX ? 'Mac' : '电脑'}
+            </Checkbox>
+          </div>
+          <div className="right">
+            v{APP_VERSION}
           </div>
         </div>
       </div>

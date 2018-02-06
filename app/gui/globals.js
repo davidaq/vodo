@@ -6,7 +6,7 @@ import { platform } from 'os'
 import CSS from './js-css'
 import { Colors } from './colors'
 import path from 'path'
-import { fork } from 'child_process'
+import { fork, exec } from 'child_process'
 
 global.isOsX = /^darwin/i.test(platform())
 global.isWindows = /^win/i.test(platform())
@@ -52,13 +52,24 @@ global.openUI = (page, options = {}, callback) => {
 }
 
 global.eventBus = new EventEmitter()
-global.serviceAddr = `http://127.0.0.1:${Store.config.port}`
 
-global.eventBus.on('service:store', data => {
-  global.eventBus.store = data
-  global.eventBus.emit('store')
+eventBus.on('quit', () => {
+  if (serviceProcess) {
+    serviceProcess.kill('SIGKILL')
+    eventBus.quit = true
+  }
 })
 
+
+/**
+ * Connect background proxy service
+ */
+global.serviceAddr = `http://127.0.0.1:${Store.config.port}`
+
+eventBus.on('service:store', data => {
+  eventBus.store = data
+  eventBus.emit('store')
+})
 // if (typeof EventSource === 'undefined') {
 //   class EventSource {
 //     addEventListener (name, fn) {
@@ -76,8 +87,8 @@ const connAlive = () => {
   }
   connDieTimeout = setTimeout(() => {
     connDieTimeout = null
-    global.eventBus.connected = false
-    global.eventBus.emit('connection')
+    eventBus.connected = false
+    eventBus.emit('connection')
   }, 6000).unref()
 }
 
@@ -91,10 +102,10 @@ const connectService = () => {
   serviceEv = new EventSource(`${global.serviceAddr}/live-sse`)
   ;['keepalive', 'store', 'begin', 'respond', 'finish', 'error'].forEach(eventName => {
     serviceEv.addEventListener(eventName, event => {
-      global.eventBus.emit(`service:${eventName}`, JSON.parse(event.data))
-      if (!global.eventBus.connected) {
-        global.eventBus.connected = true
-        global.eventBus.emit('connection')
+      eventBus.emit(`service:${eventName}`, JSON.parse(event.data))
+      if (!eventBus.connected) {
+        eventBus.connected = true
+        eventBus.emit('connection')
       }
       connAlive()
     })
@@ -112,8 +123,8 @@ const startService = () => {
   serviceProcess = cp
   cp.on('message', function onMessage (msg) {
     if (msg.type === 'listening') {
-      global.eventBus.hasServiceProcess = true
-      global.eventBus.emit('connection')
+      eventBus.hasServiceProcess = true
+      eventBus.emit('connection')
       cp.removeListener('message', onMessage)
       global.serviceAddr = `http://127.0.0.1:${msg.port}`
       setTimeout(connectService, 2000).unref()
@@ -121,18 +132,20 @@ const startService = () => {
   })
   const startTime = Date.now()
   cp.on('close', () => {
-    if (global.eventBus.quit) {
+    if (eventBus.quit) {
       return
     }
-    global.eventBus.hasServiceProcess = false
-    global.eventBus.emit('connection')
+    eventBus.hasServiceProcess = false
+    eventBus.emit('connection')
     serviceProcess = null
     const upTime = Date.now() - startTime
     if (upTime < 10000) {
       if (!serviceEv) {
         connectService()
       }
-      setTimeout(startService, 5000).unref()
+      if (process.env.NODE_ENV !== 'dev') {
+        setTimeout(startService, 5000).unref()
+      }
     } else {
       setTimeout(startService, 1000).unref()
     }
@@ -149,17 +162,88 @@ eventBus.on('change-service', (addr) => {
     if (serviceProcess) {
       serviceProcess.kill()
       setTimeout(() => {
-        global.eventBus.hasServiceProcess = true
-        global.eventBus.emit('connection')
+        eventBus.hasServiceProcess = true
+        eventBus.emit('connection')
       }, 200).unref()
     }
   }
 })
 
-global.eventBus.on('quit', () => {
-  if (serviceProcess) {
-    serviceProcess.kill('SIGKILL')
-    global.eventBus.quit = true
+/**
+ * local proxy
+ */
+if (isOsX) {
+  const parseKV = (content) => {
+    const ret = {}
+    content.split('\n').forEach(line => {
+      const [k, v = ''] = line.split(':')
+      ret[k.trim()] = v.trim()
+    })
+    return ret
   }
-})
+  let device = 'unknown'
+  const poll = () => {
+    const store = eventBus.store || {}
+    const addr = store.addr
+    const port = store.config && +store.config.port
+    if (!addr || !port) {
+      return
+    }
+    exec('networksetup -listallnetworkservices', (err, stdout) => {
+      if (err) {
+        return
+      }
+      const list = stdout.split('\n').slice(0).filter(v => !/\*/.test(v))
+      let useLocalProxy = false
+      let promise = Promise.resolve()
+      list.forEach((network) => {
+        promise = promise.then(() => new Promise((accept, reject) => {
+          exec(`networksetup -getinfo ${network}`, (err, stdout) => {
+            if (!err && parseKV(stdout)['IP address'] === addr) {
+              device = network
+              exec(`networksetup -getwebproxy ${network}`, (err, stdout) => {
+                const info = parseKV(stdout || '')
+                if (info['Enabled'] === 'Yes' && info['Server'] === '127.0.0.1' && +info['Port'] === port) {
+                  useLocalProxy = true
+                }
+                accept()
+              })
+            } else {
+              accept()
+            }
+          })
+        }))
+      })
+
+      promise.then(() => {
+        eventBus.useLocalProxy = useLocalProxy
+        eventBus.emit('connection')
+      })
+    })
+  }
+  setInterval(poll, 5000).unref()
+  eventBus.on('service:store', poll)
+  eventBus.on('use-local-proxy', enable => {
+    let cmd
+    const store = eventBus.store
+    const port = store.config && +store.config.port
+    if (enable) {
+      cmd = [
+        `-setwebproxy ${device} 127.0.0.1 ${port}`,
+        `-setwebproxystate ${device} on`,
+        `-setsecurewebproxy ${device} 127.0.0.1 ${port}`,
+        `-setsecurewebproxystate ${device} on`,
+      ].map(cmd => `networksetup ${cmd}`).join(' && ')
+    } else {
+      cmd = [
+        `-setwebproxystate ${device} off`,
+        `-setsecurewebproxystate ${device} off`,
+      ].map(cmd => `networksetup ${cmd}`).join(' && ')
+    }
+    cmd = `/usr/bin/osascript -e 'do shell script "${cmd}" with administrator privileges'`
+    exec(cmd, (err, stdout, stderr) => {
+      setTimeout(poll, 500).unref()
+    })
+  })
+}
 

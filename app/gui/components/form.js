@@ -153,7 +153,7 @@ export const Checkbox = uniformInput(
   CSS({
     '.checkbox': {
       display: 'inline-block',
-      fontSize: 13,
+      fontSize: 12,
       marginRight: 20,
       color: '#555',
       '.icon': {

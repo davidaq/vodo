@@ -24,20 +24,13 @@ function createConnection (options, cb) {
       conn = createSSLConnection
     }
     const sock = conn({ host: hostname, port, allowHalfOpen: true })
-    const connTimeout = setTimeout(() => {
-      reqSocket.end()
-      sock.destroy()
-    }, 5000)
-    sock.on('connnect', () => {
-      sock.setKeepAlive(true)
-      clearTimeout(connTimeout)
-    })
-    sock.on('error', err => clearTimeout(connTimeout))
+    sock.on('error', err => null)
     reqSocket.on('close', () => {
-      clearTimeout(connTimeout)
       sock.end()
     })
-    sock.on('end', () => reqSocket.end())
+    sock.on('close', () => {
+      reqSocket.$proxyPeer = null
+    })
     reqSocket.$proxyPeer = sock
   }
   cb(null, reqSocket.$proxyPeer)
@@ -123,6 +116,8 @@ export const handleProxy = (req, res) => {
   options.port = `${options.port}`
   options.headers = resolveHeaders(req.headers, req.rawHeaders, options.injectRequestHeaders)
   options.method = req.method.toUpperCase()
+  if (/shopposter/.test(options.href))
+    console.log(options)
   if (options.protocol === 'file:') {
     serveStatic(options, req, res)
     return
@@ -149,7 +144,7 @@ export const handleProxy = (req, res) => {
   }
   options.timeout = 5000
   const bodyLimit = Store.config.singleRequestLimit * 1024 * 1024
-  const proxyReq = request(Object.assign({ createConnection, reqSocket: req.socket }, options), proxyRes => {
+  const proxyReq = request(Object.assign({ reqSocket: req.socket }, options), proxyRes => {
     let decodedRes = proxyRes
     let encodedRes = proxyRes
     const encoding = proxyRes.headers['content-encoding']
@@ -356,7 +351,6 @@ const handleReplace = (options) => {
         options.host = rule.to.domain
         options.port = rule.to.port
         options.injectRequestHeaders = {
-          host: rule.to.domain,
           ...rule.injectRequestHeaders
         }
         options.injectResponseHeaders = rule.injectResponseHeaders
@@ -370,9 +364,11 @@ const handleReplace = (options) => {
           if (searchPos > -1) {
             options.pathname = options.path.substr(0, searchPos)
             options.search = options.path.substr(searchPos)
+            options.query = options.search.substr(1)
           } else {
             options.pathname = options.path
             options.search = null
+            options.query = null
           }
         }
         options.href = options.protocol + '//' + options.hostname +
