@@ -2,7 +2,7 @@ import { request as requestHTTP } from 'http'
 import { request as requestHTTPS } from 'https'
 import { connect as createTCPConnection } from 'net'
 import { connect as createSSLConnection } from 'tls'
-import { createGzip, createGunzip, constants, Z_SYNC_FLUSH } from 'zlib'
+import { createInflateRaw, createGzip, createGunzip, constants, Z_SYNC_FLUSH } from 'zlib'
 import { PassThrough } from 'stream'
 import { stat, createReadStream, createWriteStream } from 'fs'
 import { parse } from 'url'
@@ -17,24 +17,27 @@ const forbidenInjectHeaderkeys = {
 }
 
 function createConnection (options, cb) {
-  const { reqSocket, hostname, port } = options
+  const { reqSocket, protocol, hostname, port } = options
   if (!reqSocket.$proxyPeer) {
+    reqSocket.$proxyPeer = {}
+  }
+  const sockKey = `${protocol}//${hostname}:${port}`
+  if (!reqSocket.$proxyPeer[sockKey]) {
     let conn = createTCPConnection
-    if (options.protocol === 'https:') {
+    if (protocol === 'https:') {
       conn = createSSLConnection
     }
     const sock = conn({ host: hostname, port, allowHalfOpen: true })
-    // TODO: handle different host after replace rule
     sock.on('error', err => null)
     reqSocket.on('close', () => {
       setTimeout(() => sock.end(), 5000)
     })
     sock.on('close', () => {
-      reqSocket.$proxyPeer = null
+      reqSocket.$proxyPeer[sockKey] = null
     })
-    reqSocket.$proxyPeer = sock
+    reqSocket.$proxyPeer[sockKey] = sock
   }
-  cb(null, reqSocket.$proxyPeer)
+  cb(null, reqSocket.$proxyPeer[sockKey])
 }
 
 function resolveHeaders (headers, rawHeaders, injectHeaders) {
@@ -153,12 +156,14 @@ export const handleProxy = (req, res) => {
       decodedRes = createGunzip()
       decodedRes.on('error', err => console.error(err.stack) || decodedRes.end())
       proxyRes.pipe(decodedRes)
-      if (!clientAllowGzip) {
-        encodedRes = decodedRes
-        proxyRes.headers['content-encoding'] = 'identity'
-        delete proxyRes.headers['content-length']
-      }
-    } else if (clientAllowGzip && (encoding === 'identity' || !encoding)) {
+    } else if (encoding === 'deflate') {
+      decodedRes = createInflateRaw()
+      decodedRes.on('error', err => console.error(err.stack) || decodedRes.end())
+      proxyRes.pipe(decodedRes)
+    } else if (encoding && encoding !== 'identity') {
+      console.log(encoding)
+      maybeHTML = false
+    } else if (clientAllowGzip) {
       const contentType = proxyRes.headers['content-type']
       let wrapGzip = true
       if (contentType) {
