@@ -3,13 +3,18 @@ import { readFileSync, writeFileSync } from 'fs'
 
 export function main () {
   IPC.answer('gen-ssl-cert', (domain) => {
-    return generateCert(domain)
+    let { cert, key } = generateCert(domain, getMiddleCertPair)
+    return {
+      cert,
+      key
+    }
   })
 }
 
 const domainSuffix = {}
 
 export function certDomain (domain) {
+  return domain
   if (!domainSuffix['*']) {
     domainSuffix['*'] = true
     readAssets('domain-suffix.txt').toString().split('\n').forEach(v => {
@@ -46,20 +51,35 @@ export function getRootCertPair () {
 
 let serialCounter = 0;
 function createSerialNumber() {
-  serialCounter++;
-  const ret = `${serialCounter}`
-  if (ret.length & 1) {
+  serialCounter++
+  if (serialCounter > 0xff) {
+    serialCounter = 1
+  }
+  const ret = new Buffer([serialCounter]).toString('hex')
+  if (ret.length === 1) {
     return `0${ret}`
   }
   return ret
 }
 
-function generateCert (domain) {
-  const { rootCA, rootKey } = getRootCertPair()
+let middlePair = null 
+export function getMiddleCertPair () {
+  if (!middlePair) {
+    const num = `${Math.floor(Math.random() * 10) + 10}`
+    const { key, cert } = generateCert('vo.do', getRootCertPair, true, num)
+    const rootCA = pki.certificateFromPem(cert)
+    const rootKey = pki.privateKeyFromPem(key)
+    middlePair = { rootCA, rootKey, cer: cert, key }
+  }
+  return middlePair
+}
+
+export function generateCert (domain, getUpperCertPair, isIssuer, serialNumber) {
+  const { rootCA, rootKey, cer: upperCert } = getUpperCertPair()
   const keys = pki.rsa.generateKeyPair(1024)
   const cert = pki.createCertificate()
   cert.publicKey = keys.publicKey
-  cert.serialNumber = createSerialNumber()
+  cert.serialNumber = serialNumber || createSerialNumber()
   const curYear = new Date().getFullYear()
   cert.validity.notBefore = new Date()
   cert.validity.notBefore.setFullYear(curYear - 1)
@@ -93,56 +113,69 @@ function generateCert (domain) {
   ]
   cert.setSubject(attrs)
   cert.setIssuer(rootCA.subject.attributes)
-  cert.setExtensions([
-    {
-      name: 'basicConstraints',
-      cA: true
-    },
-    {
-      name: 'keyUsage',
-      keyCertSign: true,
-      digitalSignature: true,
-      nonRepudiation: true,
-      keyEncipherment: true,
-      dataEncipherment: true
-    },
-    {
-      name: 'extKeyUsage',
-      serverAuth: true,
-      clientAuth: true,
-      codeSigning: true,
-      emailProtection: true,
-      timeStamping: true
-    },
-    {
-      name: 'nsCertType',
-      client: true,
-      server: true,
-      email: true,
-      objsign: true,
-      sslCA: true,
-      emailCA: true,
-      objCA: true
-    },
-    {
-      name: 'subjectAltName',
-      altNames: [
-        {
-          type: 2,
-          value: domain
-        }
-      ]
-    },
-    {
-      name: 'subjectKeyIdentifier'
-    }
-  ])
+  if (isIssuer) {
+    cert.setExtensions([
+      {
+        id: '2.5.29.19',
+        critical: false,
+        value: new Buffer([0x30, 0x03, 0x01, 0x01, 0xc3, 0xbf]).toString(),
+        name: 'basicConstraints',
+        cA: true
+      }
+    ])
+  } else {
+    cert.setExtensions([
+      {
+        name: 'basicConstraints',
+        cA: true
+      },
+      {
+        name: 'keyUsage',
+        keyCertSign: true,
+        digitalSignature: true,
+        nonRepudiation: true,
+        keyEncipherment: true,
+        dataEncipherment: true
+      },
+      {
+        name: 'extKeyUsage',
+        serverAuth: true,
+        clientAuth: true,
+        codeSigning: true,
+        emailProtection: true,
+        timeStamping: true
+      },
+      {
+        name: 'nsCertType',
+        client: true,
+        server: true,
+        email: true,
+        objsign: true,
+        sslCA: true,
+        emailCA: true,
+        objCA: true
+      },
+      {
+        name: 'subjectAltName',
+        altNames: [
+          {
+            type: 2,
+            value: domain
+          }
+        ]
+      },
+      {
+        name: 'subjectKeyIdentifier'
+      }
+    ])
+  }
   cert.sign(rootKey, md.sha256.create())
   const keyString = pki.privateKeyToPem(keys.privateKey)
   const certString = pki.certificateToPem(cert)
   return {
     key: keyString,
-    cert: certString,
+    cert: certString + upperCert,
+    upperCert
   }
 }
 
@@ -211,3 +244,4 @@ export function ensureRootCA () {
     hash
   }))
 }
+

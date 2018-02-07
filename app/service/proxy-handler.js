@@ -16,6 +16,7 @@ const forbidenInjectHeaderkeys = {
   'content-length': true
 }
 
+const xcreateConnection = null
 function createConnection (options, cb) {
   const { reqSocket, protocol, hostname, port } = options
   if (!reqSocket.$proxyPeer) {
