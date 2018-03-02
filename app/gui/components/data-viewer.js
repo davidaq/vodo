@@ -2,17 +2,17 @@
 @autobind
 class DataViewer extends Component {
   componentWillMount () {
-    const { data, depth = 0 } = this.props
+    const { data, depth = 0, keyWidthMap ={} } = this.props
     const isObj = data && typeof data === 'object'
     const isArray = isObj && Array.isArray(data)
     const keys = isObj && Object.keys(data)
     const expanded = depth <= 2
     const rawVal = !isObj && JSON.stringify(data)
-    this.setState({ keys, isObj, isArray, expanded, rawVal })
+    this.setState({ keys, isObj, isArray, expanded, rawVal, keyWidthMap })
   }
 
   componentDidMount () {
-    const { data, name, depth = 0,  path = '' } = this.props
+    const { data, name, depth = 0, path = '' } = this.props
     const nameEl = this.base.querySelector('.name')
     if (nameEl) {
       nameEl.addEventListener('contextmenu', ev => {
@@ -49,6 +49,32 @@ class DataViewer extends Component {
     this.setState({ expanded: !this.state.expanded })
   }
 
+  calcKeyWidth (el) {
+    const { depth, resolveKeyWidth } = this.props
+    setTimeout(() => {
+      if (resolveKeyWidth) {
+        resolveKeyWidth(depth, el.offsetWidth)
+      } else {
+        this.resolveKeyWidth(depth, el.offsetWidth)
+      }
+    }, 30)
+  }
+
+  resolveKeyWidth (depth, width) {
+    const curWidth = this.state.keyWidthMap[depth] || 0
+    if (width > 300) {
+      width = 300
+    }
+    if (width > curWidth) {
+      this.setState({
+        keyWidthMap: {
+          ...this.state.keyWidthMap,
+          [depth]: width
+        }
+      })
+    }
+  }
+
   @CSS({
     '.data': {
       WebkitUserSelect: 'initial',
@@ -62,14 +88,10 @@ class DataViewer extends Component {
         cursor: 'pointer',
         color: '#555',
         verticalAlign: 'top',
-        width: 80,
         textOverflow: 'ellipsis',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        transition: 'background 0.3s',
-        '&.root': {
-          width: 'auto'
-        }
+        transition: 'background 0.3s'
       },
       '.vary': {
         display: 'inline-block',
@@ -95,12 +117,19 @@ class DataViewer extends Component {
   render () {
     let { data, depth = 0, name, path = '' } = this.props
     const { keys, isObj, isArray, expanded, rawVal } = this.state
+    const resolveKeyWidth = depth > 0
+      ? this.props.resolveKeyWidth
+      : this.resolveKeyWidth
+    const keyWidthMap = depth > 0
+      ? this.props.keyWidthMap
+      : this.state.keyWidthMap
+
     const nextDepth = depth + 1
     const isEmpty = isObj && keys.length === 0
     return (
       <div className="data">
         {depth > 0 ? (
-          <div className="name" onClick={this.onToggleExpand} title={path}>
+          <div ref={this.calcKeyWidth} className="name" onClick={this.onToggleExpand} title={path} style={{ minWidth: keyWidthMap[depth] || 0 }}>
             {name}
           </div>
         ) : (
@@ -119,6 +148,8 @@ class DataViewer extends Component {
             <div className="value expanded">
               {keys.map(key => (
                 <DataViewer
+                  keyWidthMap={keyWidthMap}
+                  resolveKeyWidth={resolveKeyWidth}
                   key={key}
                   path={isArray ? `${path}[${key}]` : path ? `${path}.${key}` : key}
                   name={key}
