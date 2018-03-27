@@ -85,9 +85,7 @@ const connectSSLTunnel = (req, sock, head) => {
   // redirect traffic to https handler only if
   // the config switch is on and the connect is SSL
   if (!Store.config.ignoreHTTPS || domain === 'vo.do' || domain === 'v.o.d.o') {
-    const timeout = setTimeout(() => {
-      beginDirect()
-    }, 200)
+    const timeout = setTimeout(beginDirect, 200)
     sock.once('data', (peek) => {
       clearTimeout(timeout)
       startBuffer.push(peek)

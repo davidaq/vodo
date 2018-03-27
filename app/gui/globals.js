@@ -89,6 +89,7 @@ const connAlive = () => {
     connDieTimeout = null
     eventBus.connected = false
     eventBus.emit('connection')
+    connectService()
   }, 6000).unref()
 }
 

@@ -255,6 +255,9 @@ export const open = () => {
   openUI('main', options, (win) => {
     let isQuiting = false
     win.on('close', () => {
+      if (eventBus.useLocalProxy && !confirm('在开启监听到情况下关闭vodo会导致网络不可用，是否继续？')) {
+        return false
+      }
       if (!isQuiting) {
         isQuiting = true
         eventBus.emit('quit')
